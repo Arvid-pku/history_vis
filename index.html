@@ -50,7 +50,7 @@
 
             <!-- Display Options -->
             <div class="toolbar-group display-group">
-                <label class="toggle-label"><input type="checkbox" id="showEvents" checked><span>Events</span></label>
+                <label class="toggle-label"><input type="checkbox" id="showEvents"><span>Events</span></label>
                 <label class="toggle-label"><input type="checkbox" id="showConnections" checked><span>Links</span></label>
                 <label class="toggle-label"><input type="checkbox" id="showEras" checked><span>Eras</span></label>
             </div>
@@ -60,7 +60,7 @@
             <!-- Zoom -->
             <div class="toolbar-group zoom-group">
                 <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
-                <input type="range" id="zoomSlider" min="0.25" max="15" value="0.25" step="0.25">
+                <input type="range" id="zoomSlider" min="0.1" max="15" value="0.25" step="0.1">
                 <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
                 <span class="zoom-value" id="zoomValue">0.25</span>
                 <button class="preset-btn" data-zoom="0.25">All</button>
@@ -77,6 +77,24 @@
                 <button class="era-btn" data-year="500">Medieval</button>
                 <button class="era-btn" data-year="1500">Modern</button>
             </div>
+
+            <div class="toolbar-divider"></div>
+
+            <!-- Jump to Year -->
+            <div class="toolbar-group jump-group">
+                <input type="text" id="jumpToYear" placeholder="Year..." class="year-input">
+                <button class="jump-btn" id="jumpBtn" title="Go to Year">Go</button>
+            </div>
+
+            <div class="toolbar-divider"></div>
+
+            <!-- Utility Buttons -->
+            <div class="toolbar-group utility-group">
+                <button class="util-btn" id="compareBtn" title="Compare Regions">Compare</button>
+                <button class="util-btn" id="exportBtn" title="Export Image">Export</button>
+                <button class="util-btn" id="shareBtn" title="Share Link">Share</button>
+                <button class="util-btn" id="darkModeBtn" title="Toggle Dark Mode">Dark</button>
+            </div>
         </div>
     </header>
 
@@ -85,13 +103,28 @@
         <span class="cursor-year"></span>
     </div>
 
-    <main class="timeline-container">
+    <main class="timeline-container" id="timelineContainer">
         <div class="year-scale" id="yearScale"></div>
-        <div class="timeline-wrapper">
+        <div class="timeline-wrapper" id="timelineWrapper">
+            <svg class="connections-svg" id="connectionsSvg"></svg>
             <div class="timeline-grid" id="timelineGrid"></div>
             <div class="events-overlay" id="eventsOverlay"></div>
+            <div class="global-events-track" id="globalEventsTrack"></div>
         </div>
     </main>
+
+    <!-- Compare Mode Panel -->
+    <div class="compare-panel" id="comparePanel">
+        <div class="compare-header">
+            <span>Select two regions to compare:</span>
+            <button class="compare-close" id="compareClose">&times;</button>
+        </div>
+        <div class="compare-options" id="compareOptions"></div>
+        <button class="compare-apply" id="compareApply">Apply Comparison</button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
 
     <div class="tooltip" id="tooltip">
         <div class="tooltip-header">

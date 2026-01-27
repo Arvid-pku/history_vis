@@ -1532,3 +1532,370 @@ body {
     white-space: nowrap;
 }
 
+/* ============================================
+   JUMP TO YEAR INPUT
+   ============================================ */
+
+.year-input {
+    width: 60px;
+    padding: 0.2rem 0.4rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    border: 1px solid var(--gold-dark);
+    border-radius: 3px;
+    background: white;
+    color: var(--ink-brown);
+}
+
+.year-input::placeholder {
+    color: var(--ink-sepia);
+    opacity: 0.5;
+}
+
+.jump-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--gold-leaf);
+    border: 1px solid var(--gold-dark);
+    border-radius: 3px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.jump-btn:hover {
+    background: var(--gold-dark);
+}
+
+/* ============================================
+   UTILITY BUTTONS
+   ============================================ */
+
+.util-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    background: rgba(201, 162, 39, 0.1);
+    border: 1px solid rgba(139, 105, 20, 0.4);
+    border-radius: 3px;
+    color: var(--ink-sepia);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.util-btn:hover {
+    background: rgba(201, 162, 39, 0.25);
+    color: var(--ink-brown);
+}
+
+.util-btn.active {
+    background: var(--gold-leaf);
+    color: white;
+    border-color: var(--gold-dark);
+}
+
+/* ============================================
+   CONNECTION LINES SVG
+   ============================================ */
+
+.connections-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 30;
+    overflow: visible;
+}
+
+.connection-line {
+    fill: none;
+    stroke-width: 2;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.connection-line.trade { stroke: #4CAF50; stroke-dasharray: 8 4; }
+.connection-line.conflict { stroke: #F44336; }
+.connection-line.conquest { stroke: #9C27B0; }
+.connection-line.succession { stroke: #2196F3; stroke-dasharray: 4 2; }
+.connection-line.cultural { stroke: #FF9800; stroke-dasharray: 2 2; }
+
+.connection-line:hover {
+    opacity: 1;
+    stroke-width: 3;
+}
+
+.connection-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    fill: var(--ink-brown);
+    pointer-events: none;
+}
+
+/* ============================================
+   GLOBAL EVENTS TRACK
+   ============================================ */
+
+.global-events-track {
+    position: absolute;
+    left: -25px;
+    top: 0;
+    width: 20px;
+    height: 100%;
+    z-index: 35;
+}
+
+.global-event-marker {
+    position: absolute;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.global-event-marker:hover {
+    transform: scale(1.3);
+    z-index: 100;
+}
+
+.global-event-marker.invention { background: #2196F3; }
+.global-event-marker.construction { background: #795548; }
+.global-event-marker.cultural { background: #9C27B0; }
+.global-event-marker.political { background: #4CAF50; }
+.global-event-marker.conflict { background: #F44336; }
+.global-event-marker.disaster { background: #607D8B; }
+.global-event-marker.exploration { background: #00BCD4; }
+
+/* ============================================
+   COMPARE MODE PANEL
+   ============================================ */
+
+.compare-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: var(--parchment-light);
+    border: 2px solid var(--gold-dark);
+    border-radius: 8px;
+    padding: 1.5rem;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s ease;
+    min-width: 300px;
+}
+
+.compare-panel.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.compare-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+}
+
+.compare-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--ink-sepia);
+}
+
+.compare-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.compare-option {
+    padding: 0.5rem;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.compare-option:hover {
+    background: rgba(201, 162, 39, 0.1);
+}
+
+.compare-option.selected {
+    border-color: var(--gold-leaf);
+    background: rgba(201, 162, 39, 0.2);
+}
+
+.compare-apply {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--gold-leaf);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-family: 'Cinzel', serif;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.compare-apply:hover {
+    background: var(--gold-dark);
+}
+
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink-brown);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    z-index: 3000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================
+   DYNASTY BLOCK ANIMATIONS
+   ============================================ */
+
+.dynasty-block {
+    animation: fadeInBlock 0.4s ease backwards;
+}
+
+@keyframes fadeInBlock {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Contemporaneous highlight */
+.dynasty-block.contemporary-highlight {
+    box-shadow:
+        0 0 0 2px rgba(255, 215, 0, 0.8),
+        0 0 15px rgba(255, 215, 0, 0.4);
+    z-index: 160;
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+
+body.dark-mode {
+    --parchment-light: #1a1a2e;
+    --parchment-base: #16213e;
+    --ink-black: #e8e8e8;
+    --ink-brown: #c4c4c4;
+    --ink-sepia: #a0a0a0;
+    --gold-leaf: #ffd700;
+    --gold-dark: #b8860b;
+}
+
+body.dark-mode {
+    background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+    color: #e0e0e0;
+}
+
+body.dark-mode .chronicle-header {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    border-bottom-color: #b8860b;
+}
+
+body.dark-mode .header-toolbar {
+    background: rgba(184, 134, 11, 0.1);
+}
+
+body.dark-mode .dynasty-block {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .tooltip,
+body.dark-mode .event-panel,
+body.dark-mode .compare-panel {
+    background: #1a1a2e;
+    border-color: #b8860b;
+    color: #e0e0e0;
+}
+
+body.dark-mode .legend {
+    background: rgba(26, 26, 46, 0.98);
+}
+
+body.dark-mode .year-mark {
+    color: #a0a0a0;
+}
+
+body.dark-mode .search-container,
+body.dark-mode .year-input {
+    background: #0f0f1a;
+    border-color: #b8860b;
+    color: #e0e0e0;
+}
+
+body.dark-mode #searchInput,
+body.dark-mode .year-input {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chronicle-footer {
+    border-top-color: rgba(184, 134, 11, 0.3);
+}
+
+body.dark-mode .corner-ornament::before,
+body.dark-mode .corner-ornament::after {
+    background: #b8860b;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS FOR NEW ELEMENTS
+   ============================================ */
+
+@media (max-width: 1400px) {
+    .utility-group {
+        display: none;
+    }
+}
+
+@media (max-width: 1100px) {
+    .jump-group {
+        display: none;
+    }
+}
+

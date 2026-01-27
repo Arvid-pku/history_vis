@@ -11,7 +11,7 @@ const CONFIG = {
     yearHeight: 0.25,      // pixels per year (fits entire 5000 years on screen)
     baseColumnWidth: 55,
     language: 'en',
-    showEvents: true,
+    showEvents: false,
     showConnections: true,
     showEraBackgrounds: true,
     compareMode: false,
@@ -149,19 +149,101 @@ const HISTORICAL_ERAS = [
 
 // Historical connections between civilizations
 const CONNECTIONS = [
-    { from: 'han_west', to: 'roman_empire', year: -100, type: 'trade', label: 'Silk Road', labelCN: '丝绸之路' },
-    { from: 'mongol_emp', to: 'yuan', year: 1271, type: 'succession', label: 'Mongol China', labelCN: '蒙古征服中国' },
-    { from: 'tang', to: 'abbasid', year: 751, type: 'conflict', label: 'Battle of Talas', labelCN: '怛罗斯之战' },
-    { from: 'byzantine', to: 'ottoman', year: 1453, type: 'conquest', label: 'Fall of Constantinople', labelCN: '君士坦丁堡陷落' },
+    // Trade Routes
+    { from: 'han_west', to: 'roman_empire', year: -100, type: 'trade', label: 'Silk Road Opens', labelCN: '丝绸之路开通' },
     { from: 'roman_empire', to: 'kushan', year: 100, type: 'trade', label: 'Indian Ocean Trade', labelCN: '印度洋贸易' },
+    { from: 'tang', to: 'abbasid', year: 750, type: 'trade', label: 'Silk Road Peak', labelCN: '丝路贸易鼎盛' },
+    { from: 'srivijaya', to: 'tang', year: 700, type: 'trade', label: 'Maritime Silk Road', labelCN: '海上丝绸之路' },
+    { from: 'mali', to: 'abbasid', year: 1300, type: 'trade', label: 'Trans-Saharan Trade', labelCN: '跨撒哈拉贸易' },
+    { from: 'ming', to: 'majapahit', year: 1405, type: 'trade', label: 'Zheng He Voyages', labelCN: '郑和下西洋' },
+
+    // Major Conflicts
     { from: 'achaemenid', to: 'greek_classical', year: -490, type: 'conflict', label: 'Greco-Persian Wars', labelCN: '希波战争' },
-    { from: 'ming', to: 'edo', year: 1592, type: 'conflict', label: 'Imjin War', labelCN: '万历朝鲜之役' },
+    { from: 'tang', to: 'abbasid', year: 751, type: 'conflict', label: 'Battle of Talas', labelCN: '怛罗斯之战' },
+    { from: 'mongol_emp', to: 'abbasid', year: 1258, type: 'conquest', label: 'Siege of Baghdad', labelCN: '巴格达之围' },
+    { from: 'mongol_emp', to: 'jin_jurchen', year: 1234, type: 'conquest', label: 'Mongol Conquest of Jin', labelCN: '蒙古灭金' },
+    { from: 'ming', to: 'joseon', year: 1592, type: 'conflict', label: 'Imjin War', labelCN: '万历朝鲜之役' },
+    { from: 'ottoman', to: 'byzantine', year: 1453, type: 'conquest', label: 'Fall of Constantinople', labelCN: '君士坦丁堡陷落' },
+    { from: 'qing', to: 'mongol_emp', year: 1635, type: 'conquest', label: 'Qing Subjugates Mongolia', labelCN: '清朝统一蒙古' },
+    { from: 'roman_empire', to: 'parthia', year: 53, type: 'conflict', label: 'Battle of Carrhae', labelCN: '卡莱战役' },
+
+    // Colonial Conquests
+    { from: 'aztec', to: 'roman_empire', year: 1521, type: 'conquest', label: 'Spanish Conquest', labelCN: '西班牙征服阿兹特克' },
+    { from: 'inca', to: 'roman_empire', year: 1533, type: 'conquest', label: 'Conquest of Peru', labelCN: '秘鲁征服' },
     { from: 'mughal', to: 'british_raj', year: 1757, type: 'conquest', label: 'Battle of Plassey', labelCN: '普拉西战役' },
-    { from: 'aztec', to: 'new_spain', year: 1521, type: 'conquest', label: 'Spanish Conquest', labelCN: '西班牙征服' },
-    { from: 'inca', to: 'viceroyalty_peru', year: 1533, type: 'conquest', label: 'Conquest of Peru', labelCN: '秘鲁征服' },
+
+    // Succession/Transformation
+    { from: 'mongol_emp', to: 'yuan', year: 1271, type: 'succession', label: 'Yuan Founded', labelCN: '元朝建立' },
+    { from: 'roman_empire', to: 'byzantine', year: 395, type: 'succession', label: 'Empire Splits', labelCN: '罗马帝国分裂' },
+    { from: 'rashidun', to: 'umayyad', year: 661, type: 'succession', label: 'Umayyad Caliphate', labelCN: '倭马亚王朝建立' },
+    { from: 'umayyad', to: 'abbasid', year: 750, type: 'succession', label: 'Abbasid Revolution', labelCN: '阿拔斯革命' },
+
+    // Cultural Exchange
+    { from: 'tang', to: 'unified_silla', year: 650, type: 'cultural', label: 'Buddhism Spreads', labelCN: '佛教传播' },
+    { from: 'tang', to: 'nara', year: 710, type: 'cultural', label: 'Japan Adopts Chinese System', labelCN: '日本学习唐制' },
+    { from: 'gupta', to: 'srivijaya', year: 500, type: 'cultural', label: 'Hinduism Spreads', labelCN: '印度教传播' },
     { from: 'khmer', to: 'dai_viet', year: 1471, type: 'conflict', label: 'Cham-Viet Wars', labelCN: '占城战争' },
     { from: 'srivijaya', to: 'chola', year: 1025, type: 'conflict', label: 'Chola Raids', labelCN: '朱罗远征' }
 ];
+
+// Major Historical Events
+const HISTORICAL_EVENTS = [
+    // Inventions & Discoveries
+    { year: -3000, label: 'Writing Invented', labelCN: '文字发明', region: 'middleEast', type: 'invention' },
+    { year: -2600, label: 'Great Pyramid Built', labelCN: '大金字塔建成', region: 'africa', type: 'construction' },
+    { year: -1754, label: "Hammurabi's Code", labelCN: '汉谟拉比法典', region: 'middleEast', type: 'cultural' },
+    { year: -551, label: 'Confucius Born', labelCN: '孔子诞生', region: 'eastAsia', type: 'cultural' },
+    { year: -508, label: 'Athenian Democracy', labelCN: '雅典民主制', region: 'europe', type: 'political' },
+    { year: -221, label: 'China Unified', labelCN: '秦统一中国', region: 'eastAsia', type: 'political' },
+    { year: -27, label: 'Roman Empire Begins', labelCN: '罗马帝国建立', region: 'europe', type: 'political' },
+    { year: 105, label: 'Paper Invented', labelCN: '造纸术发明', region: 'eastAsia', type: 'invention' },
+    { year: 330, label: 'Constantinople Founded', labelCN: '君士坦丁堡建立', region: 'europe', type: 'construction' },
+    { year: 476, label: 'Fall of Rome', labelCN: '西罗马帝国灭亡', region: 'europe', type: 'political' },
+    { year: 622, label: 'Islamic Calendar Begins', labelCN: '伊斯兰历元年', region: 'middleEast', type: 'cultural' },
+    { year: 868, label: 'First Printed Book', labelCN: '最早印刷书籍', region: 'eastAsia', type: 'invention' },
+    { year: 1054, label: 'Great Schism', labelCN: '东西教会分裂', region: 'europe', type: 'cultural' },
+    { year: 1215, label: 'Magna Carta', labelCN: '大宪章', region: 'europe', type: 'political' },
+    { year: 1347, label: 'Black Death Arrives', labelCN: '黑死病爆发', region: 'europe', type: 'disaster' },
+    { year: 1440, label: 'Printing Press', labelCN: '活字印刷术', region: 'europe', type: 'invention' },
+    { year: 1492, label: 'Columbus Reaches Americas', labelCN: '哥伦布到达美洲', region: 'americas', type: 'exploration' },
+    { year: 1517, label: 'Protestant Reformation', labelCN: '宗教改革', region: 'europe', type: 'cultural' },
+    { year: 1687, label: 'Newton\'s Principia', labelCN: '牛顿《原理》', region: 'europe', type: 'invention' },
+    { year: 1776, label: 'American Independence', labelCN: '美国独立', region: 'americas', type: 'political' },
+    { year: 1789, label: 'French Revolution', labelCN: '法国大革命', region: 'europe', type: 'political' },
+    { year: 1839, label: 'Opium War Begins', labelCN: '鸦片战争', region: 'eastAsia', type: 'conflict' },
+    { year: 1868, label: 'Meiji Restoration', labelCN: '明治维新', region: 'eastAsia', type: 'political' },
+    { year: 1914, label: 'World War I', labelCN: '第一次世界大战', region: 'europe', type: 'conflict' },
+    { year: 1939, label: 'World War II', labelCN: '第二次世界大战', region: 'europe', type: 'conflict' },
+    { year: 1945, label: 'United Nations Founded', labelCN: '联合国成立', region: 'americas', type: 'political' },
+    { year: 1969, label: 'Moon Landing', labelCN: '人类登月', region: 'americas', type: 'invention' },
+    { year: 1991, label: 'Soviet Union Dissolves', labelCN: '苏联解体', region: 'europe', type: 'political' }
+];
+
+// Capital cities for major entities
+const CAPITALS = {
+    qin: { name: 'Xianyang', nameCN: '咸阳', lat: 34.33, lon: 108.71 },
+    han_west: { name: "Chang'an", nameCN: '长安', lat: 34.27, lon: 108.95 },
+    han_east: { name: 'Luoyang', nameCN: '洛阳', lat: 34.62, lon: 112.45 },
+    tang: { name: "Chang'an", nameCN: '长安', lat: 34.27, lon: 108.95 },
+    n_song: { name: 'Kaifeng', nameCN: '开封', lat: 34.80, lon: 114.35 },
+    s_song: { name: "Lin'an", nameCN: '临安', lat: 30.25, lon: 120.17 },
+    yuan: { name: 'Dadu (Beijing)', nameCN: '大都', lat: 39.90, lon: 116.40 },
+    ming: { name: 'Beijing/Nanjing', nameCN: '北京/南京', lat: 39.90, lon: 116.40 },
+    qing: { name: 'Beijing', nameCN: '北京', lat: 39.90, lon: 116.40 },
+    roman_empire: { name: 'Rome', nameCN: '罗马', lat: 41.90, lon: 12.50 },
+    byzantine: { name: 'Constantinople', nameCN: '君士坦丁堡', lat: 41.01, lon: 28.98 },
+    ottoman: { name: 'Istanbul', nameCN: '伊斯坦布尔', lat: 41.01, lon: 28.98 },
+    achaemenid: { name: 'Persepolis', nameCN: '波斯波利斯', lat: 29.93, lon: 52.89 },
+    abbasid: { name: 'Baghdad', nameCN: '巴格达', lat: 33.31, lon: 44.37 },
+    mongol_emp: { name: 'Karakorum', nameCN: '哈拉和林', lat: 47.20, lon: 102.83 },
+    mughal: { name: 'Delhi/Agra', nameCN: '德里/阿格拉', lat: 28.61, lon: 77.21 },
+    aztec: { name: 'Tenochtitlan', nameCN: '特诺奇蒂特兰', lat: 19.43, lon: -99.13 },
+    inca: { name: 'Cusco', nameCN: '库斯科', lat: -13.52, lon: -71.97 },
+    edo: { name: 'Edo (Tokyo)', nameCN: '江户', lat: 35.68, lon: 139.77 },
+    joseon: { name: 'Hanyang (Seoul)', nameCN: '汉阳', lat: 37.57, lon: 126.98 },
+    khmer: { name: 'Angkor', nameCN: '吴哥', lat: 13.41, lon: 103.87 },
+    mali: { name: 'Timbuktu', nameCN: '廷巴克图', lat: 16.77, lon: -3.01 }
+};
 
 // ============================================
 // HISTORICAL DATA BY REGION
@@ -1286,12 +1368,27 @@ function initElements() {
     elements.connectionsToggle = document.getElementById('showConnections');
     elements.erasToggle = document.getElementById('showEras');
     elements.compareBtn = document.getElementById('compareBtn');
-    elements.timelineContainer = document.querySelector('.timeline-container');
+    elements.timelineContainer = document.getElementById('timelineContainer');
+    elements.timelineWrapper = document.getElementById('timelineWrapper');
     elements.yearCursor = document.getElementById('yearCursor');
     elements.presetBtns = document.querySelectorAll('.preset-btn');
     elements.eraBtns = document.querySelectorAll('.era-btn');
     elements.legendToggle = document.getElementById('legendToggle');
     elements.legendPanel = document.getElementById('legend');
+
+    // New elements for enhanced features
+    elements.connectionsSvg = document.getElementById('connectionsSvg');
+    elements.globalEventsTrack = document.getElementById('globalEventsTrack');
+    elements.jumpToYear = document.getElementById('jumpToYear');
+    elements.jumpBtn = document.getElementById('jumpBtn');
+    elements.exportBtn = document.getElementById('exportBtn');
+    elements.shareBtn = document.getElementById('shareBtn');
+    elements.darkModeBtn = document.getElementById('darkModeBtn');
+    elements.comparePanel = document.getElementById('comparePanel');
+    elements.compareOptions = document.getElementById('compareOptions');
+    elements.compareClose = document.getElementById('compareClose');
+    elements.compareApply = document.getElementById('compareApply');
+    elements.toast = document.getElementById('toast');
 }
 
 // ============================================
@@ -1682,8 +1779,8 @@ function hideTooltip() {
 
 // Generate Wikipedia URL for an entity
 function getWikiUrl(entity) {
-    // Custom wiki slugs for entities - using verified Wikipedia article names
-    const wikiSlugs = {
+    // English Wikipedia slugs
+    const wikiSlugsEN = {
         // Chinese dynasties
         qin: 'Qin_dynasty',
         han_west: 'Western_Han',
@@ -1825,8 +1922,154 @@ function getWikiUrl(entity) {
         timurid: 'Timurid_Empire'
     };
 
-    const slug = wikiSlugs[entity.id] || entity.name.replace(/\s+/g, '_');
-    const lang = CONFIG.language === 'cn' ? 'zh' : 'en';
+    // Chinese Wikipedia slugs
+    const wikiSlugsCN = {
+        // Chinese dynasties
+        qin: '秦朝',
+        han_west: '西汉',
+        han_east: '东汉',
+        tang: '唐朝',
+        n_song: '北宋',
+        s_song: '南宋',
+        yuan: '元朝',
+        ming: '明朝',
+        qing: '清朝',
+        sui: '隋朝',
+        jin_west: '晋朝',
+        jin_jurchen: '金朝',
+        cao_wei: '曹魏',
+        zhou_west: '西周',
+        zhou_east: '东周',
+        xia: '夏朝',
+        shang: '商朝',
+        xin: '新朝',
+        five_dyn: '五代十国',
+        ten_kingdoms: '五代十国',
+        sixteen_k: '五胡十六国',
+        n_wei: '北魏',
+        n_dynasties: '南北朝',
+        s_dynasties: '南北朝',
+        e_jin: '东晋',
+        shu_wu: '三国',
+        roc: '中華民國',
+        prc: '中华人民共和国',
+        yuan_early: '元朝',
+
+        // Mongolia/Steppe
+        xiongnu: '匈奴',
+        xianbei: '鲜卑',
+        rouran: '柔然',
+        gokturk: '突厥汗国',
+        uyghur: '回鹘',
+        liao: '辽朝',
+        mongol_emp: '蒙古帝国',
+        mongol_tribes: '蒙古帝国',
+        northern_yuan: '北元',
+
+        // Korea
+        gojoseon: '古朝鲜',
+        goryeo: '高丽',
+        joseon: '朝鲜王朝',
+        three_k_korea: '朝鲜三国时代',
+        unified_silla: '统一新罗',
+        korean_emp: '大韩帝国',
+        jp_korea: '朝鲜日治时期',
+        korea_divided: '朝鲜半岛南北分治',
+
+        // Japan
+        jomon: '绳文时代',
+        yayoi: '弥生时代',
+        kofun: '古坟时代',
+        asuka: '飞鸟时代',
+        nara: '奈良时代',
+        heian: '平安时代',
+        kamakura: '镰仓时代',
+        muromachi: '室町时代',
+        azuchi: '安土桃山时代',
+        edo: '江户时代',
+        meiji: '明治',
+        taisho_showa: '昭和',
+        heisei: '平成',
+
+        // Europe
+        roman_republic: '罗马共和国',
+        roman_empire: '罗马帝国',
+        byzantine: '拜占庭帝国',
+        carolingian: '加洛林帝国',
+        hre: '神圣罗马帝国',
+        ottoman: '奥斯曼帝国',
+        ottoman_peak: '奥斯曼帝国',
+        ottoman_late: '奥斯曼帝国',
+        visigoth: '西哥特王国',
+        frankish: '法兰克王国',
+
+        // Middle East
+        achaemenid: '阿契美尼德王朝',
+        sassanid: '萨珊王朝',
+        rashidun: '正统哈里发时期',
+        umayyad: '倭马亚王朝',
+        abbasid: '阿拔斯王朝',
+        abbasid_late: '阿拔斯王朝',
+        parthia: '安息帝国',
+        seleucid: '塞琉古帝国',
+        safavid: '萨非王朝',
+
+        // South Asia
+        maurya: '孔雀王朝',
+        gupta: '笈多王朝',
+        mughal: '莫卧儿帝国',
+        mughal_peak: '莫卧儿帝国',
+        mughal_late: '莫卧儿帝国',
+        british_raj: '英属印度',
+        delhi: '德里苏丹国',
+        kushan: '贵霜帝国',
+        chola: '朱罗王朝',
+
+        // Southeast Asia
+        khmer: '高棉帝国',
+        srivijaya: '三佛齐',
+        majapahit: '满者伯夷',
+        dai_viet: '大越',
+        champa: '占婆',
+        pagan: '蒲甘王朝',
+        ayutthaya: '阿瑜陀耶王国',
+        lan_xang: '澜沧王国',
+
+        // Africa
+        egypt_old: '古王國時期',
+        egypt_middle: '中王國時期',
+        egypt_new: '新王國時期',
+        egypt_late: '古埃及后期',
+        kush: '库施王国',
+        aksum: '阿克苏姆帝国',
+        mali: '马里帝国',
+        songhai: '桑海帝国',
+        ghana: '加纳帝国',
+
+        // Americas
+        maya_classic: '玛雅文明',
+        maya_post: '玛雅文明',
+        aztec: '阿兹特克帝国',
+        inca: '印加帝国',
+        olmec: '奥尔梅克文明',
+        teotihuacan: '特奥蒂瓦坎',
+        toltec: '托尔特克',
+
+        // Greek/Hellenistic
+        greek_classical: '古典希腊时期',
+        greek_archaic: '古风时期',
+        macedon: '马其顿王国',
+        ptolemaic: '托勒密王国',
+
+        // Central Asia
+        timurid: '帖木儿帝国'
+    };
+
+    const isChinese = CONFIG.language === 'cn';
+    const wikiSlugs = isChinese ? wikiSlugsCN : wikiSlugsEN;
+    const fallbackName = isChinese ? (entity.nameCN || entity.name) : entity.name;
+    const slug = wikiSlugs[entity.id] || fallbackName.replace(/\s+/g, '_');
+    const lang = isChinese ? 'zh' : 'en';
     return `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(slug)}`;
 }
 
@@ -1937,7 +2180,7 @@ function switchLanguage(lang) {
 // ============================================
 
 const DEFAULT_YEAR_HEIGHT = 0.25;
-const MIN_YEAR_HEIGHT = 0.25;
+const MIN_YEAR_HEIGHT = 0.1;
 const MAX_YEAR_HEIGHT = 15;
 
 function setZoom(newYearHeight) {
@@ -2439,16 +2682,436 @@ function setupEraNavigation() {
 }
 
 function jumpToYear(year) {
+    // Use the shared scrollToYear function
+    scrollToYear(year, true);
+}
+
+// ============================================
+// CONNECTION LINES VISUALIZATION
+// ============================================
+
+function renderConnectionLines() {
+    if (!elements.connectionsSvg || !CONFIG.showConnections) {
+        if (elements.connectionsSvg) elements.connectionsSvg.innerHTML = '';
+        return;
+    }
+
+    const svg = elements.connectionsSvg;
+    svg.innerHTML = '';
+
+    // Set SVG size
+    const totalHeight = (CONFIG.timelineEnd - CONFIG.timelineStart) * CONFIG.yearHeight;
+    svg.setAttribute('height', totalHeight);
+
+    CONNECTIONS.forEach(conn => {
+        // Find entities
+        const fromEntity = findEntityById(conn.from);
+        const toEntity = findEntityById(conn.to);
+
+        if (!fromEntity || !toEntity) return;
+
+        // Check if regions are visible
+        const fromRegion = getEntityRegion(conn.from);
+        const toRegion = getEntityRegion(conn.to);
+        if (!CONFIG.visibleRegions[fromRegion] || !CONFIG.visibleRegions[toRegion]) return;
+
+        // Get positions
+        const fromPos = entityPositions[conn.from];
+        const toPos = entityPositions[conn.to];
+        if (!fromPos || !toPos) return;
+
+        const y = yearToY(conn.year);
+
+        // Create curved path
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const fromX = fromPos.centerX || (fromPos.left + fromPos.width / 2);
+        const toX = toPos.centerX || (toPos.left + toPos.width / 2);
+        const midX = (fromX + toX) / 2;
+
+        const d = `M ${fromX} ${y}
+                   Q ${midX} ${y - 30} ${toX} ${y}`;
+
+        path.setAttribute('d', d);
+        path.setAttribute('class', `connection-line ${conn.type}`);
+        path.setAttribute('data-label', CONFIG.language === 'cn' ? conn.labelCN : conn.label);
+
+        // Add tooltip on hover
+        path.style.pointerEvents = 'stroke';
+        path.addEventListener('mouseenter', (e) => {
+            showConnectionTooltip(e, conn);
+        });
+        path.addEventListener('mouseleave', hideTooltip);
+
+        svg.appendChild(path);
+    });
+}
+
+function findEntityById(id) {
+    for (const region of Object.values(WORLD_HISTORY)) {
+        const entity = region.entities.find(e => e.id === id);
+        if (entity) return entity;
+    }
+    return null;
+}
+
+function getEntityRegion(entityId) {
+    for (const [regionKey, region] of Object.entries(WORLD_HISTORY)) {
+        if (region.entities.some(e => e.id === entityId)) {
+            return regionKey;
+        }
+    }
+    return null;
+}
+
+function showConnectionTooltip(e, conn) {
+    const tooltip = elements.tooltip;
+    tooltip.querySelector('.tooltip-title').textContent = conn.label;
+    tooltip.querySelector('.tooltip-title-cn').textContent = conn.labelCN;
+    tooltip.querySelector('.tooltip-dates').textContent = formatYear(conn.year);
+    tooltip.querySelector('.tooltip-duration').textContent = conn.type.charAt(0).toUpperCase() + conn.type.slice(1);
+
+    tooltip.style.left = `${e.clientX + 10}px`;
+    tooltip.style.top = `${e.clientY + 10}px`;
+    tooltip.classList.add('visible');
+}
+
+// ============================================
+// GLOBAL EVENTS MARKERS
+// ============================================
+
+function renderGlobalEvents() {
+    if (!elements.globalEventsTrack) return;
+
+    elements.globalEventsTrack.innerHTML = '';
+
+    HISTORICAL_EVENTS.forEach((event, index) => {
+        const marker = document.createElement('div');
+        marker.className = `global-event-marker ${event.type}`;
+        marker.style.top = `${yearToY(event.year)}px`;
+        marker.title = `${formatYear(event.year)}: ${CONFIG.language === 'cn' ? event.labelCN : event.label}`;
+        marker.style.animationDelay = `${index * 0.02}s`;
+
+        marker.addEventListener('click', () => {
+            showEventDetail(event);
+        });
+
+        elements.globalEventsTrack.appendChild(marker);
+    });
+}
+
+function showEventDetail(event) {
+    const html = `
+        <h2>${event.label}</h2>
+        <h3>${event.labelCN}</h3>
+        <p><strong>${CONFIG.language === 'cn' ? '年份' : 'Year'}:</strong> ${formatYear(event.year)}</p>
+        <p><strong>${CONFIG.language === 'cn' ? '类型' : 'Type'}:</strong> ${event.type}</p>
+        <p><strong>${CONFIG.language === 'cn' ? '地区' : 'Region'}:</strong> ${event.region}</p>
+    `;
+    elements.panelContent.innerHTML = html;
+    showPanel();
+}
+
+// ============================================
+// JUMP TO YEAR
+// ============================================
+
+function setupJumpToYear() {
+    if (!elements.jumpToYear || !elements.jumpBtn) return;
+
+    const doJump = () => {
+        let input = elements.jumpToYear.value.trim().toLowerCase();
+        let year;
+
+        // Parse input - handle BC/AD notation
+        if (input.includes('bc') || input.includes('bce')) {
+            year = -Math.abs(parseInt(input));
+        } else if (input.includes('ad') || input.includes('ce')) {
+            year = Math.abs(parseInt(input));
+        } else {
+            year = parseInt(input);
+            // Assume negative for large numbers suggesting ancient times
+            if (year > 2100) year = -year;
+        }
+
+        if (isNaN(year)) {
+            showToast('Please enter a valid year');
+            return;
+        }
+
+        // Clamp to timeline bounds
+        year = Math.max(CONFIG.timelineStart, Math.min(CONFIG.timelineEnd, year));
+
+        scrollToYear(year, true);
+        showToast(`Jumped to ${formatYear(year)}`);
+        elements.jumpToYear.value = '';
+    };
+
+    elements.jumpBtn.addEventListener('click', doJump);
+    elements.jumpToYear.addEventListener('keydown', e => {
+        if (e.key === 'Enter') doJump();
+    });
+}
+
+function scrollToYear(year, smooth = true) {
     const container = elements.timelineContainer;
-    if (!container) return;
+    if (!container) {
+        console.warn('Timeline container not found');
+        return;
+    }
 
-    const targetY = yearToY(year);
-    const containerHeight = container.clientHeight;
+    const y = yearToY(year);
+    const containerRect = container.getBoundingClientRect();
+    const containerTop = containerRect.top + window.scrollY;
+    const viewportHeight = window.innerHeight;
+    const scrollTarget = Math.max(0, containerTop + y - viewportHeight / 2);
 
-    // Scroll to center the target year in the viewport
-    container.scrollTo({
-        top: targetY - containerHeight / 2,
-        behavior: 'smooth'
+    console.log(`Scrolling to year ${year}: y=${y}, scrollTarget=${scrollTarget}`);
+
+    window.scrollTo({
+        top: scrollTarget,
+        behavior: smooth ? 'smooth' : 'instant'
+    });
+}
+
+// ============================================
+// TOAST NOTIFICATIONS
+// ============================================
+
+function showToast(message, duration = 2500) {
+    if (!elements.toast) return;
+
+    elements.toast.textContent = message;
+    elements.toast.classList.add('visible');
+
+    setTimeout(() => {
+        elements.toast.classList.remove('visible');
+    }, duration);
+}
+
+// ============================================
+// CONTEMPORANEOUS HIGHLIGHTING
+// ============================================
+
+function setupContemporaryHighlight() {
+    document.addEventListener('mouseover', e => {
+        const block = e.target.closest('.dynasty-block');
+        if (!block) return;
+
+        const start = parseInt(block.dataset.start);
+        const end = parseInt(block.dataset.end);
+
+        // Find and highlight all contemporaneous blocks
+        document.querySelectorAll('.dynasty-block').forEach(other => {
+            if (other === block) return;
+            const otherStart = parseInt(other.dataset.start);
+            const otherEnd = parseInt(other.dataset.end);
+
+            // Check for overlap
+            if (start < otherEnd && end > otherStart) {
+                other.classList.add('contemporary-highlight');
+            }
+        });
+    });
+
+    document.addEventListener('mouseout', e => {
+        const block = e.target.closest('.dynasty-block');
+        if (!block) return;
+
+        document.querySelectorAll('.dynasty-block.contemporary-highlight').forEach(el => {
+            el.classList.remove('contemporary-highlight');
+        });
+    });
+}
+
+// ============================================
+// COMPARE MODE
+// ============================================
+
+function setupCompareMode() {
+    if (!elements.compareBtn || !elements.comparePanel) return;
+
+    let selectedRegions = [];
+
+    elements.compareBtn.addEventListener('click', () => {
+        // Populate options
+        elements.compareOptions.innerHTML = '';
+        selectedRegions = [];
+
+        Object.entries(WORLD_HISTORY).forEach(([key, region]) => {
+            const option = document.createElement('div');
+            option.className = 'compare-option';
+            option.textContent = CONFIG.language === 'cn' ? region.nameCN : region.name;
+            option.dataset.region = key;
+
+            option.addEventListener('click', () => {
+                if (option.classList.contains('selected')) {
+                    option.classList.remove('selected');
+                    selectedRegions = selectedRegions.filter(r => r !== key);
+                } else if (selectedRegions.length < 2) {
+                    option.classList.add('selected');
+                    selectedRegions.push(key);
+                }
+            });
+
+            elements.compareOptions.appendChild(option);
+        });
+
+        elements.comparePanel.classList.add('visible');
+    });
+
+    elements.compareClose?.addEventListener('click', () => {
+        elements.comparePanel.classList.remove('visible');
+    });
+
+    elements.compareApply?.addEventListener('click', () => {
+        if (selectedRegions.length !== 2) {
+            showToast('Please select exactly 2 regions');
+            return;
+        }
+
+        // Hide all regions except selected
+        Object.keys(CONFIG.visibleRegions).forEach(region => {
+            CONFIG.visibleRegions[region] = selectedRegions.includes(region);
+        });
+
+        // Update checkboxes
+        elements.regionCheckboxes.forEach(checkbox => {
+            checkbox.checked = CONFIG.visibleRegions[checkbox.dataset.region];
+        });
+
+        renderTimeline();
+        renderEvents();
+        renderLegend();
+        renderConnectionLines();
+        elements.comparePanel.classList.remove('visible');
+        showToast(`Comparing ${selectedRegions.join(' & ')}`);
+    });
+}
+
+// ============================================
+// DARK MODE
+// ============================================
+
+function setupDarkMode() {
+    if (!elements.darkModeBtn) return;
+
+    // Check saved preference
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+        elements.darkModeBtn.classList.add('active');
+        elements.darkModeBtn.textContent = 'Light';
+    }
+
+    elements.darkModeBtn.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        elements.darkModeBtn.classList.toggle('active', isDark);
+        elements.darkModeBtn.textContent = isDark ? 'Light' : 'Dark';
+        localStorage.setItem('darkMode', isDark);
+    });
+}
+
+// ============================================
+// EXPORT FUNCTIONALITY
+// ============================================
+
+function setupExport() {
+    if (!elements.exportBtn) return;
+
+    elements.exportBtn.addEventListener('click', async () => {
+        showToast('Preparing export...');
+
+        try {
+            // Use html2canvas if available, otherwise simple screenshot
+            if (typeof html2canvas !== 'undefined') {
+                const canvas = await html2canvas(elements.timelineGrid, {
+                    backgroundColor: '#F5E6C8',
+                    scale: 2
+                });
+
+                const link = document.createElement('a');
+                link.download = `world-history-timeline-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Timeline exported!');
+            } else {
+                // Fallback - print dialog
+                window.print();
+                showToast('Use Print dialog to save as PDF');
+            }
+        } catch (err) {
+            showToast('Export failed - try Print (Ctrl+P)');
+            console.error('Export error:', err);
+        }
+    });
+}
+
+// ============================================
+// SHARE/URL STATE
+// ============================================
+
+function setupShare() {
+    if (!elements.shareBtn) return;
+
+    elements.shareBtn.addEventListener('click', () => {
+        updateURLState();
+        const url = window.location.href;
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copied to clipboard!');
+            });
+        } else {
+            // Fallback
+            const input = document.createElement('input');
+            input.value = url;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showToast('Link copied!');
+        }
+    });
+}
+
+// ============================================
+// SMOOTH SCROLL FOR ERA BUTTONS
+// ============================================
+
+function setupSmoothEraNavigation() {
+    if (!elements.eraBtns || elements.eraBtns.length === 0) {
+        console.warn('Era buttons not found');
+        return;
+    }
+
+    elements.eraBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const year = parseInt(btn.dataset.year);
+            if (isNaN(year)) {
+                console.warn('Invalid year in era button:', btn.dataset.year);
+                return;
+            }
+
+            scrollToYear(year, true);
+            showToast(`Jumped to ${formatYear(year)}`);
+
+            // Highlight active era button briefly
+            elements.eraBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            setTimeout(() => btn.classList.remove('active'), 1000);
+        });
+    });
+}
+
+// ============================================
+// STAGGERED ANIMATION ON LOAD
+// ============================================
+
+function applyStaggeredAnimation() {
+    const blocks = document.querySelectorAll('.dynasty-block');
+    blocks.forEach((block, index) => {
+        block.style.animationDelay = `${index * 0.015}s`;
     });
 }
 
@@ -2631,18 +3294,31 @@ function init() {
     // Zoom presets
     setupZoomPresets();
 
-    // Era navigation
-    setupEraNavigation();
-
     // Double-click to zoom
     setupDoubleClickZoom();
 
     // Legend toggle
     setupLegendToggle();
 
+    // New feature setups
+    setupJumpToYear();
+    setupDarkMode();
+    setupExport();
+    setupShare();
+    setupCompareMode();
+    setupContemporaryHighlight();
+    setupSmoothEraNavigation();
+
+    // Render connection lines and global events
+    renderConnectionLines();
+    renderGlobalEvents();
+
+    // Apply staggered animation
+    setTimeout(applyStaggeredAnimation, 100);
+
     // Escape key to close panel
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { hidePanel(); hideTooltip(); }
+        if (e.key === 'Escape') { hidePanel(); hideTooltip(); elements.comparePanel?.classList.remove('visible'); }
         if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomIn(); updateURLState(); }
         if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); updateURLState(); }
         if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); resetZoom(); updateURLState(); }
@@ -2652,7 +3328,7 @@ function init() {
     setTimeout(updateMinimap, 100);
 
     console.log('World History Timeline - 3000 BC to 2000 AD');
-    console.log('Features: Search, Minimap, Keyboard Nav, URL State, Connections, Era Backgrounds, Year Cursor, Zoom Presets, Era Navigation');
+    console.log('Features: Search, Minimap, Keyboard Nav, URL State, Connections, Era Backgrounds, Year Cursor, Zoom Presets, Era Navigation, Jump to Year, Dark Mode, Export, Compare Mode, Touch Gestures');
 }
 
 document.addEventListener('DOMContentLoaded', init);
