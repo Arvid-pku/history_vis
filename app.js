@@ -318,7 +318,8 @@ const WORLD_HISTORY = {
             { id: "joseon", name: "Joseon", nameCN: "朝鲜", start: 1392, end: 1897, slot: 3, width: 1, color: '#8BB8B8', category: 'kingdom', rulers: ['Sejong the Great'] },
             { id: "korean_emp", name: "Korean Empire", nameCN: "大韩帝国", start: 1897, end: 1910, slot: 3, width: 1, color: '#7BA8A8', category: 'empire' },
             { id: "jp_korea", name: "Japanese Korea", nameCN: "日治朝鲜", start: 1910, end: 1945, slot: 3, width: 1, color: '#C49A9A' },
-            { id: "korea_divided", name: "Divided Korea", nameCN: "南北韩", start: 1945, end: 2000, slot: 3, width: 1, color: '#8B9EC9' },
+            { id: "south_korea", name: "South Korea", nameCN: "韩国", start: 1948, end: 2000, slot: 3, width: 0.5, color: '#7B9EC9' },
+            { id: "north_korea", name: "North Korea", nameCN: "朝鲜", start: 1948, end: 2000, slot: 3.5, width: 0.5, color: '#9B7B7B' },
 
             // ============ SLOT 4: JAPAN ============
             { id: "jomon", name: "Jōmon", nameCN: "绳文", start: -3000, end: -300, slot: 4, width: 1, color: '#A89080' },
@@ -1389,6 +1390,8 @@ function initElements() {
     elements.compareClose = document.getElementById('compareClose');
     elements.compareApply = document.getElementById('compareApply');
     elements.toast = document.getElementById('toast');
+    elements.fullPageBtn = document.getElementById('fullPageBtn');
+    elements.exitFullPage = document.getElementById('exitFullPage');
 }
 
 // ============================================
@@ -1831,7 +1834,8 @@ function getWikiUrl(entity) {
         unified_silla: 'Unified_Silla',
         korean_emp: 'Korean_Empire',
         jp_korea: 'Korea_under_Japanese_rule',
-        korea_divided: 'Division_of_Korea',
+        south_korea: 'South_Korea',
+        north_korea: 'North_Korea',
 
         // Japan
         jomon: 'Jōmon_period',
@@ -1974,7 +1978,8 @@ function getWikiUrl(entity) {
         unified_silla: '统一新罗',
         korean_emp: '大韩帝国',
         jp_korea: '朝鲜日治时期',
-        korea_divided: '朝鲜半岛南北分治',
+        south_korea: '大韩民国',
+        north_korea: '朝鲜民主主义人民共和国',
 
         // Japan
         jomon: '绳文时代',
@@ -3013,6 +3018,37 @@ function setupDarkMode() {
 }
 
 // ============================================
+// FULL PAGE MODE
+// ============================================
+
+function setupFullPageMode() {
+    if (!elements.fullPageBtn) return;
+
+    const toggleFullPage = (enable) => {
+        document.body.classList.toggle('full-page-mode', enable);
+        if (enable) {
+            showToast('Full page mode. Press Esc to exit.');
+        }
+    };
+
+    elements.fullPageBtn.addEventListener('click', () => {
+        toggleFullPage(true);
+    });
+
+    elements.exitFullPage?.addEventListener('click', () => {
+        toggleFullPage(false);
+    });
+
+    // Esc key to exit full page mode
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.body.classList.contains('full-page-mode')) {
+            toggleFullPage(false);
+            e.stopPropagation();
+        }
+    });
+}
+
+// ============================================
 // EXPORT FUNCTIONALITY
 // ============================================
 
@@ -3303,6 +3339,7 @@ function init() {
     // New feature setups
     setupJumpToYear();
     setupDarkMode();
+    setupFullPageMode();
     setupExport();
     setupShare();
     setupCompareMode();
