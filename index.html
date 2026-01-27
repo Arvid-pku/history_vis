@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World History Timeline - Dynasties & Civilizations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="print.css" media="print">
+</head>
+<body>
+    <div class="corner-ornament top-left"></div>
+    <div class="corner-ornament top-right"></div>
+    <div class="corner-ornament bottom-left"></div>
+    <div class="corner-ornament bottom-right"></div>
+
+    <!-- Compact Header with Integrated Controls -->
+    <header class="chronicle-header">
+        <div class="header-top">
+            <h1 class="main-title">World History Timeline</h1>
+            <div class="header-controls">
+                <div class="search-container" id="searchContainer">
+                    <span class="search-icon">&#128269;</span>
+                    <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
+                    <button class="search-clear" id="searchClear" style="display: none;">&times;</button>
+                </div>
+                <div class="language-toggle">
+                    <button class="lang-btn active" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="cn">中文</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-toolbar">
+            <!-- Regions -->
+            <div class="toolbar-group regions-group">
+                <label class="region-toggle"><input type="checkbox" data-region="eastAsia" checked><span>E.Asia</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="southeastAsia" checked><span>SE.Asia</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="europe" checked><span>Europe</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="middleEast" checked><span>M.East</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="southAsia" checked><span>S.Asia</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="centralAsia" checked><span>C.Asia</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="africa" checked><span>Africa</span></label>
+                <label class="region-toggle"><input type="checkbox" data-region="americas" checked><span>Americas</span></label>
+            </div>
+
+            <div class="toolbar-divider"></div>
+
+            <!-- Display Options -->
+            <div class="toolbar-group display-group">
+                <label class="toggle-label"><input type="checkbox" id="showEvents" checked><span>Events</span></label>
+                <label class="toggle-label"><input type="checkbox" id="showConnections" checked><span>Links</span></label>
+                <label class="toggle-label"><input type="checkbox" id="showEras" checked><span>Eras</span></label>
+            </div>
+
+            <div class="toolbar-divider"></div>
+
+            <!-- Zoom -->
+            <div class="toolbar-group zoom-group">
+                <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
+                <input type="range" id="zoomSlider" min="0.25" max="15" value="0.25" step="0.25">
+                <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
+                <span class="zoom-value" id="zoomValue">0.25</span>
+                <button class="preset-btn" data-zoom="0.25">All</button>
+                <button class="preset-btn" data-zoom="1">100y</button>
+                <button class="preset-btn" data-zoom="5">10y</button>
+            </div>
+
+            <div class="toolbar-divider"></div>
+
+            <!-- Era Jump -->
+            <div class="toolbar-group era-group">
+                <button class="era-btn" data-year="-3000">Bronze</button>
+                <button class="era-btn" data-year="-500">Classical</button>
+                <button class="era-btn" data-year="500">Medieval</button>
+                <button class="era-btn" data-year="1500">Modern</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Year Cursor Indicator -->
+    <div class="year-cursor" id="yearCursor">
+        <span class="cursor-year"></span>
+    </div>
+
+    <main class="timeline-container">
+        <div class="year-scale" id="yearScale"></div>
+        <div class="timeline-wrapper">
+            <div class="timeline-grid" id="timelineGrid"></div>
+            <div class="events-overlay" id="eventsOverlay"></div>
+        </div>
+    </main>
+
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-header">
+            <span class="tooltip-title"></span>
+            <span class="tooltip-title-cn"></span>
+        </div>
+        <div class="tooltip-dates"></div>
+        <div class="tooltip-duration"></div>
+    </div>
+
+    <!-- Collapsible Legend -->
+    <aside class="legend" id="legend">
+        <button class="legend-toggle" id="legendToggle" title="Toggle Legend">&#9776;</button>
+        <div class="legend-content">
+            <div class="legend-items" id="legendItems"></div>
+            <div class="category-legend">
+                <div class="category-item"><span class="cat-dot" style="background:#9B7B6B"></span>Empire</div>
+                <div class="category-item"><span class="cat-dot" style="background:#7B9EB9"></span>Kingdom</div>
+                <div class="category-item"><span class="cat-dot" style="background:#8BA98B"></span>Republic</div>
+                <div class="category-item"><span class="cat-dot" style="background:#C9B896"></span>Dynasty</div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="event-panel" id="eventPanel">
+        <button class="panel-close" id="panelClose">&times;</button>
+        <div class="panel-content" id="panelContent"></div>
+    </div>
+
+    <footer class="chronicle-footer">
+        <div class="footer-ornament"></div>
+        <p class="footer-text">
+            <span class="footer-flourish">&#10016;</span>
+            Finis Coronat Opus
+            <span class="footer-flourish">&#10016;</span>
+        </p>
+        <p class="footer-note">World History Timeline - 3000 BC to 2000 AD | 8 Regions | Interactive Visualization</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

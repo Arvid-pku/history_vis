@@ -1,0 +1,188 @@
+/* Print Stylesheet for World History Timeline */
+
+@page {
+    size: landscape;
+    margin: 1cm;
+}
+
+/* Hide non-essential UI elements */
+.search-container,
+.language-toggle,
+.display-toggles,
+.zoom-controls,
+.minimap-container,
+.keyboard-shortcuts,
+.events-toggle,
+.legend,
+.tooltip,
+.event-panel,
+.panel-backdrop,
+.corner-ornament {
+    display: none !important;
+}
+
+/* Simplified header */
+.chronicle-header {
+    padding: 0.5cm 0;
+    background: none !important;
+    border-bottom: 2px solid #333;
+    margin-bottom: 0.5cm;
+}
+
+.main-title {
+    font-size: 18pt;
+    color: #000 !important;
+}
+
+.subtitle, .subtitle-cn {
+    font-size: 10pt;
+    color: #333 !important;
+}
+
+.date-range {
+    margin-top: 0.3cm;
+}
+
+.title-flourish {
+    color: #666 !important;
+}
+
+/* Region controls - simplified for print */
+.region-controls {
+    position: static !important;
+    transform: none !important;
+    background: #f5f5f5 !important;
+    border: 1px solid #999 !important;
+    margin-bottom: 0.5cm;
+    padding: 0.3cm !important;
+    page-break-after: avoid;
+}
+
+/* Timeline container */
+.timeline-container {
+    padding: 0 !important;
+    overflow: visible !important;
+    page-break-inside: auto;
+}
+
+.timeline-wrapper {
+    overflow: visible !important;
+}
+
+/* Year scale */
+.year-scale {
+    background: none !important;
+}
+
+.year-mark {
+    color: #000 !important;
+    font-size: 8pt;
+}
+
+/* Dynasty blocks - print-friendly colors */
+.dynasty-block {
+    border: 1px solid #333 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.dynasty-block::before,
+.dynasty-block::after {
+    display: none !important;
+}
+
+.dynasty-name {
+    font-size: 7pt !important;
+    color: #000 !important;
+    text-shadow: none !important;
+    font-weight: bold;
+}
+
+.dynasty-years {
+    font-size: 6pt !important;
+    color: #333 !important;
+    text-shadow: none !important;
+}
+
+/* Region headers */
+.region-header {
+    background: #ddd !important;
+    border: 1px solid #333 !important;
+    color: #000 !important;
+    text-shadow: none !important;
+    font-size: 9pt;
+}
+
+/* Era backgrounds */
+.era-background {
+    opacity: 0.3 !important;
+}
+
+.era-label {
+    color: #666 !important;
+    font-size: 7pt !important;
+}
+
+/* Events overlay */
+.events-overlay {
+    display: none !important;
+}
+
+/* Connections */
+.connection-line {
+    display: none !important;
+}
+
+/* Footer */
+.chronicle-footer {
+    position: static !important;
+    margin-top: 0.5cm;
+    padding: 0.3cm 0;
+    border-top: 1px solid #333;
+    background: none !important;
+    page-break-before: avoid;
+}
+
+.footer-ornament {
+    display: none !important;
+}
+
+.footer-text {
+    font-size: 10pt;
+    color: #333 !important;
+}
+
+.footer-note {
+    font-size: 8pt;
+    color: #666 !important;
+}
+
+/* Page breaks */
+.region-separator {
+    page-break-inside: avoid;
+}
+
+/* Force page break after timeline for multi-page */
+@media print {
+    .timeline-grid {
+        /* Scale to fit page width */
+        transform-origin: top left;
+    }
+}
+
+/* High contrast for black and white printing */
+@media print and (color: false) {
+    .dynasty-block {
+        background: #fff !important;
+        border: 2px solid #000 !important;
+    }
+
+    .dynasty-name {
+        color: #000 !important;
+    }
+
+    .region-header {
+        background: #ccc !important;
+    }
+}
