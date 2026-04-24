@@ -1,22 +1,29 @@
 /**
- * World History Timeline
- * Covers 3000 BC - 2000 AD across all major civilizations
- * Layered/stacked regions with toggle visibility
- * Enhanced with search, mini-map, keyboard nav, URL state, and more
+ * World History Timeline — The Illuminated Chronicle
+ * 3000 BC — 2000 AD · Eight regions · Five millennia
+ * Interactive, bilingual, museum-quality visualization.
  */
 
 const CONFIG = {
-    timelineStart: -3000,  // 3000 BC
-    timelineEnd: 2000,     // 2000 AD
-    yearHeight: 0.25,      // pixels per year (fits entire 5000 years on screen)
-    baseColumnWidth: 55,
+    timelineStart: -3000,
+    timelineEnd: 2000,
+    yearHeight: 0.25,
+    baseColumnWidth: 56,
+    // Visual bounds for block widths so very small / very large polities stay legible
+    // and don't dominate. Width still scales with territorial extent (slot count),
+    // but with sqrt-style compression past the soft max.
+    minBlockWidth: 42,
+    softMaxBlockWidth: 150,   // beyond this we begin gentle compression
+    hardMaxBlockWidth: 240,   // absolute cap (block won't exceed slot extent either)
     language: 'en',
-    showEvents: false,
+    showEvents: true,
     showConnections: true,
     showEraBackgrounds: true,
+    showNumberedMarkers: true,
     compareMode: false,
     compareRegions: [],
     searchQuery: '',
+    categoryFilter: null,
     visibleRegions: {
         eastAsia: true,
         europe: true,
@@ -28,6 +35,43 @@ const CONFIG = {
         southeastAsia: true
     }
 };
+
+/**
+ * Compute the rendered pixel width of a block given its territorial slot extent.
+ *
+ * The width is proportional to territorial area (slot count) with three
+ * adjustments to keep the visualization balanced:
+ *   1. A hard MIN so single-slot polities (or fractional ones like North/South
+ *      Korea) don't shrink below readability.
+ *   2. A SOFT MAX past which growth slows (sqrt compression) so empires
+ *      spanning 4+ slots don't overpower neighbors but still read as wider.
+ *   3. A hard MAX absolute cap.
+ *
+ * Returns pixels.
+ */
+function computeBlockWidth(slotCount) {
+    const base = CONFIG.baseColumnWidth;
+    const linear = slotCount * base;            // raw territorial extent (px)
+    const soft = CONFIG.softMaxBlockWidth;
+    const hard = CONFIG.hardMaxBlockWidth;
+    const min = CONFIG.minBlockWidth;
+
+    let visual;
+    if (linear <= soft) {
+        visual = linear;
+    } else {
+        // Above the soft max, compress with a square-root-like curve so
+        // each extra slot of territory adds progressively less visual width.
+        const excess = linear - soft;
+        visual = soft + Math.sqrt(excess) * 6.5;
+    }
+    // Never exceed the actual slot extent (would cause overlap) or the hard cap.
+    visual = Math.min(visual, linear, hard);
+    // Apply readability floor — but never wider than the slot extent itself,
+    // so fractional-slot polities (e.g. North/South Korea split) stay aligned.
+    const effectiveMin = Math.min(min, linear);
+    return Math.max(effectiveMin, visual);
+}
 
 // Entity categories for legend grouping
 const ENTITY_CATEGORIES = {
@@ -132,7 +176,109 @@ const HISTORICAL_DESCRIPTIONS = {
 
     // Korean history
     gojoseon: { en: "Gojoseon is considered the first Korean kingdom, traditionally founded by the legendary Dangun. It developed bronze and iron technologies and had significant cultural exchange with China before falling to Han dynasty conquest.", cn: "古朝鲜被认为是第一个朝鲜王国，传统上由传说中的檀君建立。它发展了青铜和铁器技术，在被汉朝征服之前与中国有着重要的文化交流。" },
-    goryeo: { en: "Goryeo unified the Korean peninsula and gave Korea its English name. It is known for celadon pottery, the Tripitaka Koreana (Buddhist scriptures carved on woodblocks), and the invention of metal movable type printing.", cn: "高丽统一了朝鲜半岛，Korea这个英文名称就来源于此。高丽以青瓷、高丽大藏经（雕刻在木版上的佛经）和金属活字印刷的发明闻名。" }
+    goryeo: { en: "Goryeo unified the Korean peninsula and gave Korea its English name. It is known for celadon pottery, the Tripitaka Koreana (Buddhist scriptures carved on woodblocks), and the invention of metal movable type printing.", cn: "高丽统一了朝鲜半岛，Korea这个英文名称就来源于此。高丽以青瓷、高丽大藏经（雕刻在木版上的佛经）和金属活字印刷的发明闻名。" },
+
+    // Additional enrichment — newly added entries
+    xia: { en: "Traditionally regarded as China's first dynasty, the Xia is known largely through later historical texts. Archaeological sites like Erlitou suggest a complex Bronze-Age polity in the Yellow River basin, marking China's transition from Neolithic chiefdoms to organized kingship.", cn: "夏朝传统上被视为中国第一个王朝，主要通过后世史籍记载。二里头等考古遗址揭示出黄河流域一个复杂的青铜时代政体，标志着中国从新石器酋邦向有组织王权的过渡。" },
+    zhou_east: { en: "The Eastern Zhou spanned the tumultuous Spring-and-Autumn and Warring States periods. Amid constant warfare the Hundred Schools of Thought arose — Confucius, Mozi, Laozi, Mencius and Xunzi laying the philosophical bedrock of East Asian civilization.", cn: "东周贯穿动荡的春秋与战国时期。在连绵的战乱中，诸子百家兴起——孔子、墨子、老子、孟子、荀子为东亚文明奠定了哲学基石。" },
+    warring_states: { en: "The Warring States period saw seven major powers struggle for supremacy. Iron tools, crossbows, mass infantry and canal building transformed warfare and agriculture, culminating in Qin's unification of China in 221 BC.", cn: "战国时代七雄争霸。铁器、弩机、大规模步兵与运河建设改变了战争与农业形态，最终在公元前221年以秦统一中国而告终。" },
+    jin_west: { en: "The Western Jin briefly reunified China after the Three Kingdoms period. Intrigue among the imperial family — the War of the Eight Princes — weakened the dynasty, inviting the catastrophic Uprising of the Five Barbarians that fragmented the north.", cn: "西晋短暂结束三国分裂局面。皇族内斗——八王之乱——削弱了王朝，最终引发五胡乱华，导致北方再度陷入分裂。" },
+    sui: { en: "The short-lived Sui dynasty reunified China after centuries of division, rebuilt the Great Wall, and excavated the Grand Canal that still defines the nation's trade geography. Its reforms and infrastructure laid the foundations for the Tang golden age.", cn: "短命的隋朝结束数百年分裂，重建长城，开凿了至今仍塑造中国贸易地理的大运河。其改革与基础建设为唐代盛世奠定了基础。" },
+    jin_jurchen: { en: "The Jurchen Jin conquered Northern Song in 1127 — the Jingkang Incident — and controlled much of north China. Their rule ended under relentless Mongol pressure in 1234, setting the stage for Mongol domination of all East Asia.", cn: "女真金朝于1127年灭北宋（靖康之变），统治中国北方大部分地区。面对蒙古持续压力，1234年被灭，为蒙古统治整个东亚奠定基础。" },
+    khitan_early: { en: "The Khitan people emerged from the steppe in Manchuria and founded the Liao dynasty, whose name — Kitay — became the Russian word for China itself. They pioneered a dual-administration system governing nomads and farmers separately.", cn: "契丹人兴起于满洲草原，建立辽朝——俄语中的'中国'一词即源于'Kitay'。他们开创了分别管理游牧民与农耕民的二元行政体系。" },
+    heian: { en: "The Heian period is Japan's classical age, when aristocratic court culture produced The Tale of Genji — arguably the world's first novel — and defined enduring Japanese aesthetics of miyabi (courtly elegance) and mono no aware (poignant impermanence).", cn: "平安时代是日本的古典时代，贵族宫廷文化孕育了《源氏物语》——或许是世界上第一部小说——并定义了延续至今的'雅'与'物哀'美学。" },
+    kamakura: { en: "Power shifted from the emperor's court to the samurai under the Kamakura shogunate. Zen Buddhism flourished, and Japan twice repelled Mongol invasions (1274, 1281) — the kamikaze (divine wind) storms entering national memory.", cn: "镰仓幕府的建立使权力从天皇朝廷转移至武士阶层。禅宗兴盛，日本两次抵御元朝入侵（1274、1281年）——'神风'由此进入民族记忆。" },
+    muromachi: { en: "Despite civil wars, the Muromachi period produced some of Japan's most enduring art: Noh theatre, ink-painting, the tea ceremony, karesansui gardens, and the rise of the samurai warlord class that shaped the Sengoku era.", cn: "尽管战乱频繁，室町时代却孕育出日本最持久的艺术：能剧、水墨画、茶道、枯山水园林，以及塑造战国时代的武士大名阶层。" },
+    edo: { en: "Edo Japan experienced over 250 years of Tokugawa peace under strict social order and isolation from the outside world. Urban merchant culture flourished — kabuki, ukiyo-e, haiku, sushi — while literacy rates rose to among the highest in the world.", cn: "江户日本在德川幕府治下享有逾250年的和平，社会秩序严密，闭关锁国。都市町人文化繁荣——歌舞伎、浮世绘、俳句、寿司——识字率位居世界前列。" },
+    joseon: { en: "The Joseon dynasty, Korea's longest-ruling, lasted over 500 years. King Sejong the Great commissioned Hangul — a phonetic alphabet designed specifically for the Korean language — and Confucian scholarship defined governance, art and daily life.", cn: "朝鲜王朝是韩国统治最长的王朝，延续500余年。世宗大王创制专为朝鲜语设计的表音字母'韩文'，儒家学问塑造了治理、艺术与日常生活。" },
+    // Southeast Asia
+    dai_viet: { en: "Đại Việt (Great Viet) was the imperial name of Vietnam during the Lý, Trần, Lê and Nguyễn dynasties. It developed a culture blending indigenous traditions with Chinese Confucian influences and thrice repelled Mongol invasions in the 13th century.", cn: "大越是越南李、陈、黎、阮等朝代的帝国国号。融合本土传统与中华儒家影响，形成独特文化，并在13世纪三度击退蒙古入侵。" },
+    champa: { en: "Champa was a maritime-trading Hindu-Buddhist civilization along central Vietnam's coast. Its brick temple towers (My Son) rival Angkor; gradual absorption by Đại Việt (1471) ended an independent Cham state, though Cham communities persist today.", cn: "占婆是中越海岸的海上贸易印度教-佛教文明。其砖石塔寺（美山）可与吴哥媲美；1471年被大越吞并结束独立政体，但占族社群延续至今。" },
+    pagan: { en: "The Pagan Kingdom unified the lands that became Burma (Myanmar) and adopted Theravada Buddhism as its state religion. Some 10,000 temples were built on the plain of Bagan; only Mongol invasions (1287) broke its centuries-long dominance.", cn: "蒲甘王国统一了后来的缅甸地区，以上座部佛教为国教。蒲甘平原上建造了约一万座佛塔；蒙古入侵（1287年）才终结其数百年的霸权。" },
+    ayutthaya: { en: "Ayutthaya was one of Southeast Asia's wealthiest kingdoms, a cosmopolitan trade hub where Portuguese, Dutch, Japanese and Persian merchants lived side by side. Its sack by the Burmese in 1767 still defines Thai historical memory.", cn: "阿瑜陀耶曾是东南亚最富有的王国，葡萄牙、荷兰、日本与波斯商人云集的国际贸易中心。1767年被缅甸洗劫的记忆至今塑造着泰国民族意识。" },
+    // Europe
+    byzantine: { en: "The Byzantine Empire preserved Roman and Greek heritage for a thousand years after the Western fall. Constantinople was Europe's largest city, its Hagia Sophia the greatest dome in Christendom. Byzantine law, liturgy and diplomacy still echo through Eastern Europe.", cn: "拜占庭帝国在西罗马灭亡后保存了罗马与希腊遗产逾千年。君士坦丁堡是欧洲最大的城市，圣索菲亚大教堂是基督教世界最宏伟的穹顶。拜占庭的法律、礼仪与外交至今回响于东欧。" },
+    carolingian: { en: "Charlemagne was crowned emperor in 800, symbolically reviving the Western Roman Empire. His court at Aachen sponsored the Carolingian Renaissance — preserving classical manuscripts, standardizing handwriting, and establishing the intellectual foundations of medieval Europe.", cn: "查理曼于800年加冕为帝，象征着西罗马帝国的复兴。其阿亨宫廷赞助了加洛林文艺复兴——保存古典手稿、规范字体，为中世纪欧洲奠定知识基础。" },
+    hre: { en: "The Holy Roman Empire — famously dismissed by Voltaire as 'neither holy, nor Roman, nor an empire' — was nonetheless the political framework of Central Europe for a millennium. Its fragmentation shaped the modern map from Switzerland to the Netherlands.", cn: "神圣罗马帝国被伏尔泰讽刺为'既不神圣，也不罗马，更非帝国'，却成为中欧千年的政治框架。其分裂塑造了从瑞士到荷兰的现代欧洲版图。" },
+    england_medieval: { en: "Medieval England was shaped by the Norman Conquest of 1066, which fused Anglo-Saxon, Danish and Norman cultures. Magna Carta (1215), common law, parliamentary government, and the English language itself emerged from this turbulent era.", cn: "中世纪英格兰由1066年的诺曼征服塑造，融合了盎格鲁-撒克逊、丹麦与诺曼文化。《大宪章》（1215）、普通法、议会制政府与英语本身均诞生于这一动荡时代。" },
+    napoleon: { en: "At its zenith (1812) the Napoleonic Empire stretched from Spain to Moscow. Napoleon's Civil Code, metric system, and administrative reforms outlasted his defeat — modern Europe is in many ways still shaped by his brief reign.", cn: "拿破仑帝国于1812年达到顶峰，版图从西班牙延伸到莫斯科。其民法典、公制度量衡与行政改革比他的失败更为持久——现代欧洲仍深受其短暂统治的塑造。" },
+    russia_empire: { en: "The Russian Empire was the largest contiguous state in Europe, spanning eleven time zones. Peter the Great westernized its elite; Catherine expanded south; by 1900 it produced Tolstoy, Tchaikovsky, Mendeleev — before revolution swept it away in 1917.", cn: "俄罗斯帝国是欧洲最大的连续疆域国家，横跨11个时区。彼得大帝推行西化改革；叶卡捷琳娜南扩版图；至1900年孕育出托尔斯泰、柴可夫斯基、门捷列夫——1917年革命终结其命运。" },
+    ussr: { en: "The Soviet Union was the first socialist state — industrial powerhouse, superpower, and Cold War antagonist of the United States. Collapsing in 1991, it left fifteen successor states and a geopolitical shockwave that still reverberates today.", cn: "苏联是首个社会主义国家——工业强国、超级大国、美国冷战对手。1991年解体，留下15个继承国及至今仍在回响的地缘政治冲击。" },
+    // Middle East
+    sumer: { en: "Sumer was the world's first urban civilization — inventing cuneiform writing, the wheel, the sailboat, and mathematics. Uruk, Eridu, and Ur were the first cities; Gilgamesh, legendary king of Uruk, is the oldest hero in world literature.", cn: "苏美尔是世界首个城市文明——发明楔形文字、车轮、帆船与数学。乌鲁克、埃里都、乌尔是人类最早的城市；乌鲁克传奇之王吉尔伽美什是世界文学中最古老的英雄。" },
+    akkad: { en: "Sargon of Akkad welded the Sumerian city-states into history's first multi-ethnic empire. Akkadian displaced Sumerian as the spoken tongue across Mesopotamia, and the Akkadian imperial model would be imitated by every successor for two millennia.", cn: "阿卡德的萨尔贡将苏美尔城邦铸成史上首个多民族帝国。阿卡德语取代苏美尔语成为美索不达米亚的通用口语，阿卡德的帝国模式为此后两千年的继承者所效仿。" },
+    hittite: { en: "The Hittites were pioneers of iron metallurgy and master diplomats — the Treaty of Kadesh (1259 BC) with Egypt's Ramesses II is history's oldest surviving peace treaty. Their Indo-European language decoded in 1915 revolutionized comparative linguistics.", cn: "赫梯人是铁器冶金的先驱和外交大师——与埃及拉美西斯二世签订的卡迭石和约（前1259年）是现存最古老的和平条约。1915年破译的赫梯语（印欧语系）革新了比较语言学。" },
+    assyria: { en: "The Neo-Assyrian Empire perfected brutal but effective imperial governance — standing armies, siege engineering, mass deportations. The Library of Ashurbanipal at Nineveh preserved the Epic of Gilgamesh and much of Mesopotamia's literary heritage.", cn: "新亚述帝国将残酷但高效的帝国治理推向极致——常备军、攻城工程、大规模流放。尼尼微亚述巴尼拔图书馆保存了《吉尔伽美什史诗》及美索不达米亚大量文学遗产。" },
+    neo_babylon: { en: "The Neo-Babylonian Empire under Nebuchadnezzar II rebuilt Babylon into the world's most dazzling city — the Hanging Gardens, the Ishtar Gate, the ziggurat Etemenanki (perhaps the original Tower of Babel). It fell to Cyrus the Great's Persians in 539 BC.", cn: "新巴比伦帝国在尼布甲尼撒二世治下将巴比伦重建为当时最辉煌的城市——空中花园、伊什塔尔门、埃特曼安吉塔庙（或即'巴别塔'原型）。公元前539年被居鲁士大帝的波斯灭亡。" },
+    sasanian: { en: "The Sasanian Empire was late antiquity's other superpower, rivalling Rome and Byzantium for four centuries. Zoroastrianism became state religion; chess, polo, and royal protocol spread westward; its fall to Arab armies (651) reshaped Eurasia.", cn: "萨珊帝国是古典晚期的另一超级大国，与罗马/拜占庭对峙四百年。琐罗亚斯德教定为国教；国际象棋、马球与宫廷礼仪西传；公元651年亡于阿拉伯，重塑欧亚。" },
+    umayyad: { en: "The Umayyad Caliphate expanded Islam from Atlantic to Indus — the largest empire the world had yet seen. Damascus was their capital; Arabic became a world language; the Dome of the Rock remains one of humanity's most beautiful buildings.", cn: "倭马亚哈里发将伊斯兰疆域从大西洋扩展至印度河，是当时世界最大的帝国。大马士革为都；阿拉伯语成为世界语言；圆顶清真寺至今是人类最美的建筑之一。" },
+    fatimid: { en: "The Shia Fatimid Caliphate founded Cairo (969) and al-Azhar University — the world's longest continuously operating university. They controlled the Red Sea trade and nurtured a brilliant scholarly culture in medicine, astronomy and philosophy.", cn: "什叶派法蒂玛哈里发建立开罗（969年）与艾资哈尔大学——世界上持续运作时间最长的大学。他们掌控红海贸易，在医学、天文学、哲学上孕育出辉煌的学术文化。" },
+    safavid: { en: "The Safavid Empire made Twelver Shia Islam Iran's state religion — an identity that endures today. Shah Abbas I's Isfahan was nicknamed 'Half the World'; Persian miniature painting, carpet-weaving, and architecture reached their peak.", cn: "萨法维帝国将十二伊玛目什叶派立为伊朗国教——这一身份延续至今。阿拔斯大帝的伊斯法罕被誉为'半个世界'；波斯细密画、地毯织造与建筑艺术达到顶峰。" },
+    ottoman_peak: { en: "At its zenith under Suleiman the Magnificent, the Ottoman Empire stretched from Vienna to Yemen, Algiers to Baghdad. Istanbul's skyline was defined by Sinan's mosques. The millet system allowed religious communities extraordinary autonomy for centuries.", cn: "奥斯曼帝国在苏莱曼大帝治下达到鼎盛，版图从维也纳到也门、从阿尔及尔到巴格达。伊斯坦布尔天际线由锡南的清真寺定义。米利特制度使宗教社群数个世纪以来享有非凡自治权。" },
+    // South Asia
+    indus_valley: { en: "The Indus Valley Civilization rivalled Egypt and Mesopotamia in scale, with planned cities (Harappa, Mohenjo-daro), standardized weights, advanced sanitation, and an undeciphered script. Its sudden decline around 1500 BC remains one of archaeology's great mysteries.", cn: "印度河流域文明规模可与埃及、美索不达米亚比肩——规划城市（哈拉帕、摩亨佐-达罗）、标准化度量衡、先进卫生系统，以及至今未解读的文字。约公元前1500年的骤衰至今是考古学最大谜题之一。" },
+    maurya: { en: "Under Ashoka the Great, the Maurya Empire unified most of the Indian subcontinent and embraced Buddhism after witnessing the horrors of the Kalinga War. Ashoka's rock edicts — ethical proclamations in multiple scripts — are among history's earliest public moral documents.", cn: "孔雀帝国在阿育王治下统一印度次大陆大部分地区，他见证羯陵伽之战的惨状后皈依佛教。阿育王石刻敕令——多种文字的道德宣告——是史上最早的公开伦理文献。" },
+    kushan: { en: "The Kushan Empire ruled a Silk Road crossroads where Greek, Persian, Indian and Chinese ideas fused. Under Kanishka, Mahayana Buddhism and the Gandharan art style — Greek-influenced Buddhist sculpture — spread across Central Asia to China.", cn: "贵霜帝国统治着丝绸之路的十字路口，希腊、波斯、印度与中国思想在此交融。在迦腻色伽王治下，大乘佛教与犍陀罗艺术——受希腊影响的佛教雕塑——经中亚传入中国。" },
+    gupta: { en: "The Gupta Empire was India's Classical Age — decimal numerals, zero, astronomy (Aryabhata calculated pi), Kalidasa's drama, and the consolidation of Hindu temple architecture all flourished. Sanskrit reached its literary zenith.", cn: "笈多帝国是印度的古典时代——十进制数字、零的概念、天文学（阿耶波多计算圆周率）、迦梨陀娑的戏剧、印度教神庙建筑的成熟皆在此时兴盛。梵语文学达到巅峰。" },
+    chola: { en: "The Chola dynasty built one of the only genuinely maritime Indian empires, with naval expeditions reaching Sumatra and Sri Lanka. Thanjavur's Brihadisvara Temple and the bronze Nataraja (Dancing Shiva) figurines represent the pinnacle of South Indian art.", cn: "朱罗王朝建立了印度罕见的真正海上帝国，海军远征至苏门答腊与斯里兰卡。坦贾武尔的布里哈迪斯瓦拉神庙与青铜纳塔罗阇（舞蹈湿婆）像代表南印度艺术的顶峰。" },
+    mughal: { en: "The Mughal Empire combined Persian culture, Turko-Mongol statecraft, and Indian resources into one of history's wealthiest empires. The Taj Mahal, the Peacock Throne, Urdu language, and mughlai cuisine are all its legacies.", cn: "莫卧儿帝国融合波斯文化、突厥-蒙古治术与印度资源，缔造史上最富有的帝国之一。泰姬陵、孔雀宝座、乌尔都语与莫卧儿菜肴皆为其遗产。" },
+    mughal_max: { en: "Under Aurangzeb (1687-1707), Mughal territory reached its greatest extent — nearly the entire subcontinent. Yet his intolerance of Hindus, endless Deccan wars, and imperial overextension planted the seeds of rapid 18th-century collapse.", cn: "奥朗则布治下（1687-1707）莫卧儿疆域达极盛——几乎覆盖整个次大陆。然其对印度教徒的不宽容、旷日持久的德干战争、帝国过度扩张，为18世纪迅速崩溃埋下伏笔。" },
+    british_raj: { en: "The British Raj (1858-1947) united India politically under a single administration while extracting its wealth. Railways, English-language education, modern nationalism, cricket, and ultimately Gandhi's nonviolent movement all emerged from this colonial period.", cn: "英属印度（1858-1947）在单一行政下政治统一印度，同时攫取其财富。铁路、英语教育、现代民族主义、板球，以及最终甘地的非暴力运动，都诞生于这一殖民时期。" },
+    // Central Asia
+    timurid: { en: "Timur the Lame (Tamerlane) forged an empire from Delhi to Damascus through unparalleled destruction, yet his capital Samarkand became a jewel of Islamic civilization. Timurid art, the Registan, and his descendant Babur's founding of the Mughals are his lasting legacy.", cn: "跛子帖木儿以无与伦比的破坏缔造了从德里到大马士革的帝国，但其首都撒马尔罕却成为伊斯兰文明的明珠。帖木儿艺术、雷吉斯坦广场，以及其后裔巴布尔创建莫卧儿帝国，是他持久的遗产。" },
+    parthia: { en: "The Parthian Empire rivalled Rome for nearly five centuries, famous for the 'Parthian shot' — firing arrows backward at full gallop. Controlling the Silk Road, they grew immensely wealthy by bridging East and West in trade and ideas.", cn: "帕提亚帝国与罗马对峙近五百年，以'帕提亚回射'——疾驰中回身射箭——闻名。掌控丝绸之路，在东西方贸易与思想的桥梁中积聚巨大财富。" },
+    // Africa
+    egypt_old: { en: "Old Kingdom Egypt — the Age of Pyramids — built the Great Pyramid of Giza, one of the Seven Wonders and the tallest human structure for 3,800 years. Pharaonic ideology, hieroglyphs, and the vast administrative bureaucracy were perfected here.", cn: "埃及古王国——金字塔时代——建造吉萨大金字塔，七大奇迹之一，3800年间人类最高建筑。法老意识形态、象形文字与庞大的行政官僚体系皆在此完善。" },
+    egypt_new: { en: "New Kingdom Egypt reached its military and cultural zenith under Ramesses II and Thutmose III. Karnak and Luxor temples, the Valley of the Kings, Akhenaten's monotheism experiment, and Tutankhamun's tomb all date from this brilliant era.", cn: "新王国埃及在拉美西斯二世与图特摩斯三世治下达到军事与文化的顶峰。卡纳克与卢克索神庙、帝王谷、阿肯那顿的一神教实验与图坦卡蒙墓皆出自这一辉煌时代。" },
+    aksum: { en: "The Kingdom of Aksum, in what is now Ethiopia, was counted by Manichaean sources among the four great powers of the 3rd century (alongside Rome, Persia, China). It was among the earliest states to adopt Christianity (c. 340 AD).", cn: "阿克苏姆王国（今埃塞俄比亚）在3世纪摩尼教文献中被列为与罗马、波斯、中国并称的四大强国之一。是最早采用基督教（约340年）的国家之一。" },
+    mali: { en: "The Mali Empire's Mansa Musa undertook a 1324 pilgrimage to Mecca so lavish it crashed the gold economy of Egypt for a decade. Timbuktu under Mali became a world center of Islamic scholarship; Mali's wealth drew Europeans to explore West Africa.", cn: "马里帝国曼萨·穆萨1324年的麦加朝圣极尽奢华，使埃及黄金经济崩溃十年。马里治下的廷巴克图成为伊斯兰学术的世界中心；马里的富庶吸引欧洲人探索西非。" },
+    songhai: { en: "The Songhai Empire at its peak was the largest African empire in history, dominating trans-Saharan trade. Timbuktu and Djenné flourished as centers of learning; the Moroccan invasion of 1591 ended the era of great Sahelian empires.", cn: "桑海帝国鼎盛时是历史上最大的非洲帝国，主导跨撒哈拉贸易。廷巴克图与杰内成为繁荣的学术中心；1591年摩洛哥入侵结束了萨赫勒伟大帝国的时代。" },
+    // Americas
+    olmec: { en: "The Olmec are regarded as Mesoamerica's 'mother civilization' — the first to build pyramids, carve colossal heads, develop calendars, and play the ballgame. Later Mesoamerican cultures (Maya, Aztec) inherited their religious and artistic vocabulary.", cn: "奥尔梅克被视为中美洲'母文明'——最早建造金字塔、雕刻巨型头像、发展历法、举行球赛。后来的中美洲文化（玛雅、阿兹特克）继承其宗教与艺术词汇。" },
+    teotihuacan: { en: "Teotihuacan was one of the largest cities in the world around 500 AD, rivalling Rome. Its builders' identity remains a mystery, as does the cause of its sudden collapse — but its Pyramids of the Sun and Moon awed later Aztecs, who named it 'Place Where Gods Were Born'.", cn: "特奥蒂瓦坎约在公元500年是世界上最大的城市之一，可与罗马媲美。其建造者身份与骤然崩溃的原因至今成谜——但日月金字塔令后来的阿兹特克人惊叹，将其命名为'众神降生之地'。" },
+    maya_classic: { en: "The Classic Maya (AD 250-900) developed the Americas' most sophisticated writing system, a 365-day calendar accurate within hours, elaborate mathematics including zero, and astronomical knowledge rivalling Ptolemy's Greece. Their collapse remains partly mysterious.", cn: "古典玛雅（250-900年）发展出美洲最复杂的文字系统、精确到小时的365日历法、包含零的复杂数学，以及可与托勒密希腊媲美的天文知识。其崩溃至今仍部分成谜。" },
+    aztec: { en: "The Aztec Triple Alliance built Tenochtitlan — a city of 200,000 on a lake, with aqueducts, floating gardens, and causeways — the wonder of the Americas. Their empire fell in two years to Cortés (1519-21) amid smallpox, civil war, and Spanish alliances with subject peoples.", cn: "阿兹特克三国同盟建造了特诺奇蒂特兰——湖上20万人口的城市，拥有水道、浮动花园与堤道——美洲的奇迹。1519-21年两年间亡于科尔特斯，其败因包括天花、内战与西班牙与被统治民族的同盟。" },
+    inca: { en: "The Inca Empire was the largest in pre-Columbian America, administered without writing using the khipu (knotted cords) for records, and connected by 40,000 km of roads through the Andes. Machu Picchu, their royal retreat, was never found by the Spanish.", cn: "印加帝国是前哥伦布时代美洲最大的帝国，以结绳（奇普）代替文字进行管理，安第斯山脉上修筑了4万公里道路。皇家秘所马丘比丘从未被西班牙人发现。" },
+    // More context entries
+    han_west: { en: "The Western Han consolidated China's imperial identity — Confucianism became state orthodoxy, paper was invented, the Silk Road opened, and Emperor Wu pushed borders deep into Central Asia. The term 'Han Chinese' comes from this dynasty.", cn: "西汉巩固了中国的帝国身份——儒学成为官方正统，造纸术发明，丝绸之路开通，汉武帝将疆域深推入中亚。'汉人'之称源于此朝。" },
+    tang: { en: "The Tang dynasty is often called China's golden age. Chang'an was the world's largest city, drawing merchants, monks, and diplomats from across Eurasia. Poetry (Li Bai, Du Fu, Wang Wei), woodblock printing, the civil-service exam and Buddhist art all flourished.", cn: "唐朝常被称为中国的黄金时代。长安是当时世界最大的城市，吸引欧亚大陆各地的商人、僧侣与使节。诗歌（李白、杜甫、王维）、雕版印刷、科举与佛教艺术皆在此时兴盛。" },
+    n_song: { en: "The Northern Song saw an astonishing flowering of technology — printing, gunpowder, the compass, paper money, blast furnaces — and commerce that supported the world's first urban bourgeois culture. Kaifeng's markets rivalled anything in medieval Europe.", cn: "北宋科技迎来惊人绽放——印刷术、火药、指南针、纸币、高炉炼铁——商业繁荣支撑起世界上首个城市市民文化。开封的市井可与中世纪欧洲任何城市匹敌。" },
+    yuan: { en: "The Yuan dynasty, founded by Kublai Khan, integrated China into the Mongol world system. Under Pax Mongolica, Marco Polo and Ibn Battuta travelled freely; the Grand Canal was extended; Beijing became the capital of a unified China for the first time.", cn: "元朝由忽必烈建立，使中国融入蒙古世界体系。在蒙古和平之下，马可·波罗与伊本·白图泰畅行无阻；大运河得到延伸；北京首次成为统一中国的首都。" },
+    ming: { en: "The Ming dynasty restored Han Chinese rule after Mongol domination. The Forbidden City was built, the Great Wall rebuilt in brick, and Zheng He's seven voyages reached East Africa — decades before Columbus. Ming porcelain and novels remain world treasures.", cn: "明朝在蒙古统治后恢复汉人政权。建造紫禁城，以砖石重建长城，郑和七下西洋远及东非——比哥伦布早数十年。明代瓷器与小说至今是世界瑰宝。" },
+    qing: { en: "The Qing, China's last imperial dynasty, ruled the largest territory in Chinese history. Kangxi, Yongzheng and Qianlong presided over a prosperous era, but 19th-century Western imperialism, internal rebellions, and reform failures led to the 1911 revolution.", cn: "清朝是中国最后一个帝制王朝，统治中国史上最大的疆域。康熙、雍正、乾隆缔造盛世，但19世纪西方帝国主义、内部起义与改革失败最终导致1911年革命。" },
+    mongol_emp: { en: "The Mongol Empire under Genghis Khan and his heirs became the largest contiguous land empire in history. The Pax Mongolica enabled unprecedented cross-Eurasian exchange — the Black Death, gunpowder, paper money, and the compass all moved along its highways.", cn: "蒙古帝国在成吉思汗与其后裔治下成为史上最大的连续陆地帝国。蒙古和平促成了前所未有的欧亚交流——黑死病、火药、纸币与指南针皆沿其大道流通。" },
+    achaemenid: { en: "The Achaemenid Persian Empire was the world's first truly multinational state — from Ethiopia to the Indus. Cyrus the Great's tolerance became legendary; the Royal Road and Cyrus Cylinder (considered by some the first charter of human rights) reshaped governance.", cn: "阿契美尼德波斯帝国是世界上第一个真正的多民族国家——从埃塞俄比亚到印度河。居鲁士大帝的宽容成为传奇；御道与居鲁士圆柱（一些人视为最早的人权宪章）重塑了治理方式。" },
+    roman_empire: { en: "At its peak the Roman Empire ruled 70 million people across three continents. Latin, Roman law, Christianity, straight roads, concrete, calendars and the notion of citizenship all trace back here. The Mediterranean became a Roman lake for four centuries.", cn: "罗马帝国鼎盛时期统治三大洲的7000万人口。拉丁语、罗马法、基督教、直线道路、混凝土、历法与公民身份观念皆源于此。地中海四个世纪以来是一片罗马内海。" },
+    maurya_nw: { en: "Under Maurya rule, the northwest frontier brought India into contact with Hellenistic successor states of Alexander's empire. This cultural meeting gave rise to Gandharan art and carried Buddhism along trade routes into Central Asia and China.", cn: "孔雀王朝治下的西北前沿使印度与亚历山大帝国的希腊化继承国接触。这一文化交汇催生犍陀罗艺术，并将佛教沿贸易路线带入中亚与中国。" }
+};
+
+// Additional rich entity details: capitals, key achievements, flourishes, fall
+const ENTITY_DETAILS = {
+    qin: { capital: { en: 'Xianyang', cn: '咸阳' }, rulers: ['Qin Shi Huang'], rulersCN: ['秦始皇'], achievements: { en: ['Unified China', 'Standardized weights, writing, currency', 'Built early Great Wall', 'Terracotta Army'], cn: ['统一中国','统一度量衡、文字、货币','修筑长城','兵马俑'] } },
+    han_west: { capital: { en: "Chang'an", cn: '长安' }, rulers: ['Liu Bang','Emperor Wu'], rulersCN: ['刘邦','汉武帝'], achievements: { en: ['Silk Road opened','Paper invented','Confucianism as state ideology','Population census'], cn: ['丝绸之路开通','造纸术发明','确立儒学','人口普查'] } },
+    tang: { capital: { en: "Chang'an", cn: '长安' }, rulers: ['Taizong','Wu Zetian','Xuanzong'], rulersCN: ['唐太宗','武则天','唐玄宗'], achievements: { en: ['Cosmopolitan capital of 1M','Poetic golden age','Civil service exams','Block printing'], cn: ['百万人口国际都会','诗歌黄金时代','完善科举','雕版印刷'] } },
+    n_song: { capital: { en: 'Kaifeng', cn: '开封' }, rulers: ['Taizu','Shenzong'], rulersCN: ['宋太祖','宋神宗'], achievements: { en: ['Movable type printing','Paper money','Compass for navigation','Urban market economy'], cn: ['活字印刷','纸币','航海指南针','城市市场经济'] } },
+    ming: { capital: { en: 'Beijing', cn: '北京' }, rulers: ['Hongwu','Yongle','Wanli'], rulersCN: ['洪武','永乐','万历'], achievements: { en: ['Forbidden City built','Zheng He voyages','Great Wall rebuilt in stone','Ming vase porcelain'], cn: ['紫禁城建成','郑和下西洋','砖石重建长城','青花瓷'] } },
+    qing: { capital: { en: 'Beijing', cn: '北京' }, rulers: ['Kangxi','Qianlong','Guangxu'], rulersCN: ['康熙','乾隆','光绪'], achievements: { en: ['Largest territorial extent','High Qing prosperity','Siku Quanshu compilation','Canton trade system'], cn: ['疆域最大','康乾盛世','编纂《四库全书》','广州十三行贸易'] } },
+    roman_empire: { capital: { en: 'Rome', cn: '罗马' }, rulers: ['Augustus','Trajan','Hadrian','Marcus Aurelius'], rulersCN: ['奥古斯都','图拉真','哈德良','马可·奥勒留'], achievements: { en: ['Pax Romana','Roman law','Engineering (aqueducts, roads)','Spread of Christianity'], cn: ['罗马和平','罗马法','水道桥与道路工程','基督教传播'] } },
+    byzantine: { capital: { en: 'Constantinople', cn: '君士坦丁堡' }, rulers: ['Justinian I','Basil II','Constantine XI'], rulersCN: ['查士丁尼一世','巴西尔二世','君士坦丁十一世'], achievements: { en: ['Hagia Sophia','Justinian Code','Greek fire','Preservation of classical knowledge'], cn: ['圣索菲亚大教堂','查士丁尼法典','希腊火','保存古典学问'] } },
+    ottoman_peak: { capital: { en: 'Istanbul', cn: '伊斯坦布尔' }, rulers: ['Suleiman the Magnificent','Mehmed II','Selim I'], rulersCN: ['苏莱曼大帝','穆罕默德二世','塞利姆一世'], achievements: { en: ['Fall of Constantinople','Mosque architecture of Sinan','Millet system','Coffee houses'], cn: ['攻陷君士坦丁堡','锡南清真寺建筑','米利特制度','咖啡馆文化'] } },
+    achaemenid: { capital: { en: 'Persepolis / Susa', cn: '波斯波利斯 / 苏萨' }, rulers: ['Cyrus the Great','Darius I','Xerxes I'], rulersCN: ['居鲁士大帝','大流士一世','薛西斯一世'], achievements: { en: ['First multinational empire','Royal Road','Religious tolerance','Satrapy system'], cn: ['首个多民族帝国','御道','宗教宽容','行省制度'] } },
+    abbasid: { capital: { en: 'Baghdad', cn: '巴格达' }, rulers: ['Al-Mansur','Harun al-Rashid','Al-Ma\'mun'], rulersCN: ['曼苏尔','哈伦·拉希德','麦蒙'], achievements: { en: ['House of Wisdom','Translation movement','Algebra (al-Khwarizmi)','Islamic Golden Age'], cn: ['智慧宫','翻译运动','代数（花剌子米）','伊斯兰黄金时代'] } },
+    maurya: { capital: { en: 'Pataliputra', cn: '华氏城' }, rulers: ['Chandragupta','Bindusara','Ashoka'], rulersCN: ['旃陀罗笈多','频头娑罗','阿育王'], achievements: { en: ['First Indian empire','Ashoka\'s edicts','Buddhism to Sri Lanka','Sarnath lion capital'], cn: ['首个印度大帝国','阿育王石刻敕令','佛教传入斯里兰卡','鹿野苑狮柱'] } },
+    gupta: { capital: { en: 'Pataliputra', cn: '华氏城' }, rulers: ['Chandragupta I','Samudragupta','Chandragupta II'], rulersCN: ['旃陀罗笈多一世','海护王','旃陀罗笈多二世'], achievements: { en: ['Concept of zero','Aryabhata astronomy','Kalidasa drama','Nalanda University'], cn: ['零的概念','阿耶波多天文学','迦梨陀娑戏剧','那烂陀寺'] } },
+    mughal_max: { capital: { en: 'Delhi / Agra', cn: '德里 / 阿格拉' }, rulers: ['Akbar','Shah Jahan','Aurangzeb'], rulersCN: ['阿克巴','沙贾汗','奥朗则布'], achievements: { en: ['Taj Mahal','Peacock Throne','Din-i Ilahi','Mughal miniature painting'], cn: ['泰姬陵','孔雀宝座','丁·伊·伊拉希','莫卧儿细密画'] } },
+    mongol_emp: { capital: { en: 'Karakorum', cn: '哈拉和林' }, rulers: ['Genghis Khan','Ögedei','Möngke','Kublai Khan'], rulersCN: ['成吉思汗','窝阔台','蒙哥','忽必烈'], achievements: { en: ['Largest contiguous empire','Yam postal system','Pax Mongolica trade','Cultural exchange'], cn: ['最大连续帝国','站赤邮驿','蒙古和平贸易','文化交流'] } },
+    aztec: { capital: { en: 'Tenochtitlan', cn: '特诺奇蒂特兰' }, rulers: ['Itzcoatl','Moctezuma II'], rulersCN: ['伊斯科阿特尔','蒙特祖马二世'], achievements: { en: ['Chinampa agriculture','Codex tradition','Triple Alliance','Aqueduct engineering'], cn: ['浮田农业','古抄本传统','三国同盟','水道工程'] } },
+    inca: { capital: { en: 'Cusco', cn: '库斯科' }, rulers: ['Pachacuti','Tupac Inca','Huayna Capac'], rulersCN: ['帕查库蒂','图帕克·印卡','瓦伊纳·卡帕克'], achievements: { en: ['40,000 km road network','Quipu record-keeping','Machu Picchu','Terraced agriculture'], cn: ['4万公里道路网络','奇普记事','马丘比丘','梯田农业'] } },
+    mali: { capital: { en: 'Niani / Timbuktu', cn: '尼亚尼 / 廷巴克图' }, rulers: ['Sundiata','Mansa Musa'], rulersCN: ['松迪亚塔','曼萨·穆萨'], achievements: { en: ['Mansa Musa\'s hajj','Timbuktu scholarship','Trans-Saharan gold trade','Sankore madrasa'], cn: ['曼萨·穆萨朝圣','廷巴克图学术','跨撒哈拉黄金贸易','桑科雷经学院'] } },
+    edo: { capital: { en: 'Edo (Tokyo)', cn: '江户' }, rulers: ['Tokugawa Ieyasu','Tokugawa Yoshimune'], rulersCN: ['德川家康','德川吉宗'], achievements: { en: ['250 years of peace','Ukiyo-e wood-block prints','Kabuki & haiku','Sakoku isolation'], cn: ['250年和平','浮世绘','歌舞伎与俳句','锁国政策'] } },
+    joseon: { capital: { en: 'Hanyang (Seoul)', cn: '汉阳 / 首尔' }, rulers: ['Taejo','Sejong the Great','Yeongjo'], rulersCN: ['太祖','世宗大王','英祖'], achievements: { en: ['Hangul alphabet','Turtle ships (Yi Sun-sin)','Joseon ceramics','Neo-Confucian state'], cn: ['韩文字母','龟船（李舜臣）','朝鲜陶瓷','新儒家国家'] } },
+    khmer: { capital: { en: 'Angkor', cn: '吴哥' }, rulers: ['Jayavarman VII','Suryavarman II'], rulersCN: ['阇耶跋摩七世','苏利耶跋摩二世'], achievements: { en: ['Angkor Wat','Bayon faces','Khmer hydraulic engineering','Classical Khmer literature'], cn: ['吴哥窟','巴戎寺四面像','高棉水利工程','古典高棉文学'] } },
+    abbasid_egypt: { capital: { en: 'Fustat', cn: '福斯塔特' }, achievements: { en: ['Cairo founded (969)','Al-Azhar University','Ismaili Shia caliphate','Mediterranean trade hub'], cn: ['开罗建立（969）','艾资哈尔大学','伊斯玛仪派哈里发','地中海贸易中心'] } },
+    fatimid: { capital: { en: 'Cairo', cn: '开罗' }, rulers: ['Al-Mu\'izz','Al-Hakim'], rulersCN: ['穆伊兹','哈基姆'], achievements: { en: ['Cairo founded','Al-Azhar University','Ismaili Shia caliphate','Mediterranean trade hub'], cn: ['建立开罗','艾资哈尔大学','伊斯玛仪派哈里发','地中海贸易中心'] } },
+    napoleon: { capital: { en: 'Paris', cn: '巴黎' }, rulers: ['Napoleon Bonaparte'], rulersCN: ['拿破仑·波拿巴'], achievements: { en: ['Napoleonic Code','Metric system spread','Continental System','Austerlitz victory'], cn: ['拿破仑法典','公制度量衡扩展','大陆封锁','奥斯特里茨大捷'] } },
+    ussr: { capital: { en: 'Moscow', cn: '莫斯科' }, rulers: ['Lenin','Stalin','Khrushchev','Brezhnev','Gorbachev'], rulersCN: ['列宁','斯大林','赫鲁晓夫','勃列日涅夫','戈尔巴乔夫'], achievements: { en: ['First socialist state','Space race (Sputnik, Gagarin)','Defeat of Nazi Germany','Superpower status'], cn: ['首个社会主义国家','太空竞赛（斯普特尼克、加加林）','击败纳粹德国','超级大国地位'] } }
 };
 
 // Historical eras for background shading
@@ -149,74 +295,172 @@ const HISTORICAL_ERAS = [
 
 // Historical connections between civilizations
 const CONNECTIONS = [
-    // Trade Routes
+    // Trade routes — ancient
     { from: 'han_west', to: 'roman_empire', year: -100, type: 'trade', label: 'Silk Road Opens', labelCN: '丝绸之路开通' },
     { from: 'roman_empire', to: 'kushan', year: 100, type: 'trade', label: 'Indian Ocean Trade', labelCN: '印度洋贸易' },
+    { from: 'kushan', to: 'han_east', year: 150, type: 'trade', label: 'Silk Road Buddhism', labelCN: '丝路佛教' },
     { from: 'tang', to: 'abbasid', year: 750, type: 'trade', label: 'Silk Road Peak', labelCN: '丝路贸易鼎盛' },
+    { from: 'tang', to: 'umayyad', year: 720, type: 'trade', label: 'Silk Road Trade', labelCN: '丝路贸易' },
     { from: 'srivijaya', to: 'tang', year: 700, type: 'trade', label: 'Maritime Silk Road', labelCN: '海上丝绸之路' },
+    { from: 'srivijaya', to: 'abbasid', year: 900, type: 'trade', label: 'Maritime Spice Trade', labelCN: '海上香料贸易' },
+    { from: 'ghana', to: 'abbasid', year: 900, type: 'trade', label: 'Gold-Salt Trade', labelCN: '黄金-盐贸易' },
     { from: 'mali', to: 'abbasid', year: 1300, type: 'trade', label: 'Trans-Saharan Trade', labelCN: '跨撒哈拉贸易' },
+    { from: 'mali', to: 'mamluk', year: 1324, type: 'trade', label: "Mansa Musa's Hajj", labelCN: '曼萨·穆萨朝圣' },
     { from: 'ming', to: 'majapahit', year: 1405, type: 'trade', label: 'Zheng He Voyages', labelCN: '郑和下西洋' },
+    { from: 'ming', to: 'mali', year: 1418, type: 'trade', label: 'Zheng He Reaches Africa', labelCN: '郑和达非洲' },
+    { from: 'n_song', to: 'fatimid', year: 1100, type: 'trade', label: 'Indian Ocean Commerce', labelCN: '印度洋贸易' },
+    { from: 'yuan', to: 'ilkhanate', year: 1290, type: 'trade', label: 'Pax Mongolica', labelCN: '蒙古和平' },
+    { from: 'chola', to: 'n_song', year: 1015, type: 'trade', label: 'Chola-Song Embassies', labelCN: '朱罗-宋交聘' },
 
-    // Major Conflicts
-    { from: 'achaemenid', to: 'greek_classical', year: -490, type: 'conflict', label: 'Greco-Persian Wars', labelCN: '希波战争' },
-    { from: 'tang', to: 'abbasid', year: 751, type: 'conflict', label: 'Battle of Talas', labelCN: '怛罗斯之战' },
-    { from: 'mongol_emp', to: 'abbasid', year: 1258, type: 'conquest', label: 'Siege of Baghdad', labelCN: '巴格达之围' },
-    { from: 'mongol_emp', to: 'jin_jurchen', year: 1234, type: 'conquest', label: 'Mongol Conquest of Jin', labelCN: '蒙古灭金' },
-    { from: 'ming', to: 'joseon', year: 1592, type: 'conflict', label: 'Imjin War', labelCN: '万历朝鲜之役' },
-    { from: 'ottoman', to: 'byzantine', year: 1453, type: 'conquest', label: 'Fall of Constantinople', labelCN: '君士坦丁堡陷落' },
-    { from: 'qing', to: 'mongol_emp', year: 1635, type: 'conquest', label: 'Qing Subjugates Mongolia', labelCN: '清朝统一蒙古' },
+    // Major Conflicts — ancient
+    { from: 'achaemenid', to: 'greek_citystates', year: -490, type: 'conflict', label: 'Greco-Persian Wars', labelCN: '希波战争' },
+    { from: 'macedon', to: 'achaemenid', year: -331, type: 'conquest', label: "Alexander's Conquest", labelCN: '亚历山大东征' },
+    { from: 'roman_republic_2', to: 'carthage', year: -218, type: 'conflict', label: 'Second Punic War', labelCN: '第二次布匿战争' },
+    { from: 'han_west', to: 'xiongnu', year: -133, type: 'conflict', label: 'Han-Xiongnu Wars', labelCN: '汉匈战争' },
     { from: 'roman_empire', to: 'parthia', year: 53, type: 'conflict', label: 'Battle of Carrhae', labelCN: '卡莱战役' },
+    { from: 'roman_empire', to: 'parthia', year: 117, type: 'conflict', label: "Trajan's Parthian War", labelCN: '图拉真远征帕提亚' },
+    { from: 'sasanian', to: 'roman_east', year: 260, type: 'conflict', label: 'Battle of Edessa', labelCN: '埃德萨战役' },
+    { from: 'tang', to: 'abbasid', year: 751, type: 'conflict', label: 'Battle of Talas', labelCN: '怛罗斯之战' },
 
-    // Colonial Conquests
-    { from: 'aztec', to: 'roman_empire', year: 1521, type: 'conquest', label: 'Spanish Conquest', labelCN: '西班牙征服阿兹特克' },
-    { from: 'inca', to: 'roman_empire', year: 1533, type: 'conquest', label: 'Conquest of Peru', labelCN: '秘鲁征服' },
-    { from: 'mughal', to: 'british_raj', year: 1757, type: 'conquest', label: 'Battle of Plassey', labelCN: '普拉西战役' },
+    // Medieval conquests
+    { from: 'rashidun', to: 'sasanian', year: 651, type: 'conquest', label: 'Arab Conquest of Persia', labelCN: '阿拉伯征服波斯' },
+    { from: 'rashidun', to: 'byzantine', year: 636, type: 'conquest', label: 'Yarmouk — Levant Falls', labelCN: '耶尔穆克河战役' },
+    { from: 'umayyad', to: 'visigothic', year: 711, type: 'conquest', label: 'Muslim Conquest of Iberia', labelCN: '征服伊比利亚' },
+    { from: 'mongol_emp', to: 'khwarazmian', year: 1220, type: 'conquest', label: 'Mongol Invasion of Khwarezm', labelCN: '蒙古征花剌子模' },
+    { from: 'mongol_emp', to: 'jin_jurchen', year: 1234, type: 'conquest', label: 'Mongol Conquest of Jin', labelCN: '蒙古灭金' },
+    { from: 'mongol_emp', to: 'abbasid_core', year: 1258, type: 'conquest', label: 'Sack of Baghdad', labelCN: '巴格达之围' },
+    { from: 'mongol_emp', to: 'kievan_rus', year: 1240, type: 'conquest', label: 'Mongol Sack of Kiev', labelCN: '蒙古陷基辅' },
+    { from: 'mamluk', to: 'mongol_emp', year: 1260, type: 'conflict', label: 'Ain Jalut — Mongols Halted', labelCN: '艾因贾鲁特战役' },
+    { from: 'ottoman_mid', to: 'byzantine_anatolia', year: 1453, type: 'conquest', label: 'Fall of Constantinople', labelCN: '君士坦丁堡陷落' },
+    { from: 'ming', to: 'joseon', year: 1592, type: 'conflict', label: 'Imjin War', labelCN: '万历朝鲜之役' },
+    { from: 'qing', to: 'northern_yuan', year: 1635, type: 'conquest', label: 'Qing Subjugates Mongolia', labelCN: '清朝统一蒙古' },
+
+    // Colonial conquests
+    { from: 'spain', to: 'aztec', year: 1521, type: 'conquest', label: 'Spanish Conquest of Aztec', labelCN: '西班牙征服阿兹特克' },
+    { from: 'spain', to: 'inca', year: 1533, type: 'conquest', label: 'Spanish Conquest of Inca', labelCN: '西班牙征服印加' },
+    { from: 'great_britain', to: 'mughal_rump', year: 1757, type: 'conquest', label: 'Battle of Plassey', labelCN: '普拉西战役' },
+    { from: 'great_britain', to: 'qing', year: 1842, type: 'conflict', label: 'First Opium War', labelCN: '第一次鸦片战争' },
+    { from: 'taisho_showa', to: 'roc', year: 1937, type: 'conflict', label: 'Second Sino-Japanese War', labelCN: '抗日战争' },
 
     // Succession/Transformation
-    { from: 'mongol_emp', to: 'yuan', year: 1271, type: 'succession', label: 'Yuan Founded', labelCN: '元朝建立' },
-    { from: 'roman_empire', to: 'byzantine', year: 395, type: 'succession', label: 'Empire Splits', labelCN: '罗马帝国分裂' },
-    { from: 'rashidun', to: 'umayyad', year: 661, type: 'succession', label: 'Umayyad Caliphate', labelCN: '倭马亚王朝建立' },
+    { from: 'roman_late', to: 'byzantine_early', year: 395, type: 'succession', label: 'Empire Splits East/West', labelCN: '罗马帝国分裂' },
+    { from: 'rashidun', to: 'umayyad', year: 661, type: 'succession', label: 'Umayyad Caliphate', labelCN: '倭马亚建立' },
     { from: 'umayyad', to: 'abbasid', year: 750, type: 'succession', label: 'Abbasid Revolution', labelCN: '阿拔斯革命' },
+    { from: 'mongol_emp', to: 'yuan', year: 1271, type: 'succession', label: 'Yuan Founded', labelCN: '元朝建立' },
+    { from: 'timurid', to: 'mughal_early', year: 1526, type: 'succession', label: 'Babur Founds Mughals', labelCN: '巴布尔建立莫卧儿' },
 
-    // Cultural Exchange
-    { from: 'tang', to: 'unified_silla', year: 650, type: 'cultural', label: 'Buddhism Spreads', labelCN: '佛教传播' },
-    { from: 'tang', to: 'nara', year: 710, type: 'cultural', label: 'Japan Adopts Chinese System', labelCN: '日本学习唐制' },
-    { from: 'gupta', to: 'srivijaya', year: 500, type: 'cultural', label: 'Hinduism Spreads', labelCN: '印度教传播' },
-    { from: 'khmer', to: 'dai_viet', year: 1471, type: 'conflict', label: 'Cham-Viet Wars', labelCN: '占城战争' },
-    { from: 'srivijaya', to: 'chola', year: 1025, type: 'conflict', label: 'Chola Raids', labelCN: '朱罗远征' }
+    // Cultural Exchange / Religion
+    { from: 'tang', to: 'unified_silla', year: 650, type: 'cultural', label: 'Buddhism to Korea', labelCN: '佛教东传朝鲜' },
+    { from: 'tang', to: 'nara', year: 710, type: 'cultural', label: 'Japan Adopts Tang System', labelCN: '日本学习唐制' },
+    { from: 'gupta', to: 'srivijaya', year: 500, type: 'cultural', label: 'Hinduism & Buddhism', labelCN: '印度教与佛教传播' },
+    { from: 'kushan', to: 'tang', year: 400, type: 'cultural', label: 'Buddhism on Silk Road', labelCN: '丝路佛教东传' },
+    { from: 'byzantine', to: 'kievan_rus', year: 988, type: 'cultural', label: 'Christianization of Rus', labelCN: '罗斯基督化' },
+    { from: 'carolingian', to: 'hre', year: 962, type: 'succession', label: 'Holy Roman Empire Founded', labelCN: '神圣罗马帝国建立' },
+
+    // Southeast Asian
+    { from: 'khmer', to: 'dai_viet', year: 1471, type: 'conflict', label: 'Champa-Viet Wars', labelCN: '占城战争' },
+    { from: 'srivijaya', to: 'chola', year: 1025, type: 'conflict', label: 'Chola Raids Srivijaya', labelCN: '朱罗远征' },
+
+    // Modern global
+    { from: 'nazi_germany', to: 'ussr_early', year: 1941, type: 'conflict', label: 'Operation Barbarossa', labelCN: '巴巴罗萨计划' },
+    { from: 'ussr', to: 'prc', year: 1950, type: 'cultural', label: 'Sino-Soviet Alliance', labelCN: '中苏同盟' }
 ];
 
-// Major Historical Events
+// Major Historical Events — enriched to ~90 entries, each with a short description
 const HISTORICAL_EVENTS = [
-    // Inventions & Discoveries
-    { year: -3000, label: 'Writing Invented', labelCN: '文字发明', region: 'middleEast', type: 'invention' },
-    { year: -2600, label: 'Great Pyramid Built', labelCN: '大金字塔建成', region: 'africa', type: 'construction' },
-    { year: -1754, label: "Hammurabi's Code", labelCN: '汉谟拉比法典', region: 'middleEast', type: 'cultural' },
-    { year: -551, label: 'Confucius Born', labelCN: '孔子诞生', region: 'eastAsia', type: 'cultural' },
-    { year: -508, label: 'Athenian Democracy', labelCN: '雅典民主制', region: 'europe', type: 'political' },
-    { year: -221, label: 'China Unified', labelCN: '秦统一中国', region: 'eastAsia', type: 'political' },
-    { year: -27, label: 'Roman Empire Begins', labelCN: '罗马帝国建立', region: 'europe', type: 'political' },
-    { year: 105, label: 'Paper Invented', labelCN: '造纸术发明', region: 'eastAsia', type: 'invention' },
-    { year: 330, label: 'Constantinople Founded', labelCN: '君士坦丁堡建立', region: 'europe', type: 'construction' },
-    { year: 476, label: 'Fall of Rome', labelCN: '西罗马帝国灭亡', region: 'europe', type: 'political' },
-    { year: 622, label: 'Islamic Calendar Begins', labelCN: '伊斯兰历元年', region: 'middleEast', type: 'cultural' },
-    { year: 868, label: 'First Printed Book', labelCN: '最早印刷书籍', region: 'eastAsia', type: 'invention' },
-    { year: 1054, label: 'Great Schism', labelCN: '东西教会分裂', region: 'europe', type: 'cultural' },
-    { year: 1215, label: 'Magna Carta', labelCN: '大宪章', region: 'europe', type: 'political' },
-    { year: 1347, label: 'Black Death Arrives', labelCN: '黑死病爆发', region: 'europe', type: 'disaster' },
-    { year: 1440, label: 'Printing Press', labelCN: '活字印刷术', region: 'europe', type: 'invention' },
-    { year: 1492, label: 'Columbus Reaches Americas', labelCN: '哥伦布到达美洲', region: 'americas', type: 'exploration' },
-    { year: 1517, label: 'Protestant Reformation', labelCN: '宗教改革', region: 'europe', type: 'cultural' },
-    { year: 1687, label: 'Newton\'s Principia', labelCN: '牛顿《原理》', region: 'europe', type: 'invention' },
-    { year: 1776, label: 'American Independence', labelCN: '美国独立', region: 'americas', type: 'political' },
-    { year: 1789, label: 'French Revolution', labelCN: '法国大革命', region: 'europe', type: 'political' },
-    { year: 1839, label: 'Opium War Begins', labelCN: '鸦片战争', region: 'eastAsia', type: 'conflict' },
-    { year: 1868, label: 'Meiji Restoration', labelCN: '明治维新', region: 'eastAsia', type: 'political' },
-    { year: 1914, label: 'World War I', labelCN: '第一次世界大战', region: 'europe', type: 'conflict' },
-    { year: 1939, label: 'World War II', labelCN: '第二次世界大战', region: 'europe', type: 'conflict' },
-    { year: 1945, label: 'United Nations Founded', labelCN: '联合国成立', region: 'americas', type: 'political' },
-    { year: 1969, label: 'Moon Landing', labelCN: '人类登月', region: 'americas', type: 'invention' },
-    { year: 1991, label: 'Soviet Union Dissolves', labelCN: '苏联解体', region: 'europe', type: 'political' }
+    // ===== PRE-HISTORY & ANCIENT =====
+    { year: -3000, label: 'Cuneiform Invented', labelCN: '楔形文字发明', region: 'middleEast', type: 'invention', desc: { en: 'Sumerians in Uruk press the first writing signs into clay tablets — history begins.', cn: '乌鲁克的苏美尔人将第一批文字符号刻入泥版——历史自此开始。' } },
+    { year: -2700, label: 'Egyptian Hieroglyphs', labelCN: '埃及象形文字', region: 'africa', type: 'invention', desc: { en: 'Hieroglyphic writing matures into a system used for royal inscriptions and religious texts.', cn: '象形文字发展为用于王室铭文与宗教文献的成熟体系。' } },
+    { year: -2600, label: 'Great Pyramid of Giza', labelCN: '吉萨大金字塔', region: 'africa', type: 'construction', desc: { en: "Pharaoh Khufu's monument stands 146m tall — humanity's tallest structure for 3,800 years.", cn: '法老胡夫的陵墓高达146米——此后3800年间人类最高建筑。' } },
+    { year: -2334, label: 'Sargon of Akkad', labelCN: '阿卡德萨尔贡', region: 'middleEast', type: 'political', desc: { en: "World's first multi-ethnic empire forged from the Sumerian city-states.", cn: '世界首个多民族帝国——由苏美尔城邦铸就。' } },
+    { year: -1754, label: "Hammurabi's Code", labelCN: '汉谟拉比法典', region: 'middleEast', type: 'cultural', desc: { en: "Babylon's king inscribes 282 laws on a stele — one of humanity's earliest legal codes.", cn: '巴比伦国王在石柱上刻下282条法律——人类最早的成文法典之一。' } },
+    { year: -1600, label: 'Shang Oracle Bones', labelCN: '商代甲骨文', region: 'eastAsia', type: 'invention', desc: { en: 'Earliest Chinese writing divines the future through inscriptions on turtle shells and ox bones.', cn: '最早的中国文字：在龟甲兽骨上刻辞占卜未来。' } },
+    { year: -1274, label: 'Battle of Kadesh', labelCN: '卡迭石战役', region: 'middleEast', type: 'conflict', desc: { en: 'Ramesses II of Egypt vs Muwatalli II of Hatti — history\'s earliest well-documented battle.', cn: '埃及拉美西斯二世对战赫梯穆瓦塔里二世——史上有详细记录的最早战役。' } },
+    { year: -776, label: 'First Olympic Games', labelCN: '第一届奥运会', region: 'europe', type: 'cultural', desc: { en: 'Athletic competitions at Olympia, held every four years in honor of Zeus.', cn: '奥林匹亚竞技大会——每四年为献给宙斯而举行。' } },
+    { year: -753, label: 'Traditional Founding of Rome', labelCN: '罗马建城', region: 'europe', type: 'political', desc: { en: 'Legendary founding of Rome by Romulus; a hilltop village that would rule the world.', cn: '罗慕路斯传说中建立罗马城——一个山丘村落将统治世界。' } },
+    { year: -563, label: 'Buddha Born', labelCN: '佛陀诞生', region: 'southAsia', type: 'cultural', desc: { en: 'Siddhartha Gautama is born in Lumbini; his teachings will reshape Asian civilization.', cn: '悉达多·乔达摩诞生于蓝毗尼；其教义将重塑亚洲文明。' } },
+    { year: -551, label: 'Confucius Born', labelCN: '孔子诞生', region: 'eastAsia', type: 'cultural', desc: { en: 'Kong Qiu is born in Lu; his ethical philosophy will guide East Asia for 2,500 years.', cn: '孔丘生于鲁国；其伦理哲学将指引东亚两千五百年。' } },
+    { year: -508, label: 'Athenian Democracy', labelCN: '雅典民主制', region: 'europe', type: 'political', desc: { en: 'Cleisthenes\' reforms create the first democratic constitution in history.', cn: '克里斯提尼改革创立史上首部民主宪制。' } },
+    { year: -480, label: 'Battle of Thermopylae', labelCN: '温泉关之战', region: 'europe', type: 'conflict', desc: { en: '300 Spartans delay Xerxes\' Persian army — an enduring legend of defiance.', cn: '300勇士阻挡薛西斯波斯大军——抗争的不朽传奇。' } },
+    { year: -431, label: 'Peloponnesian War', labelCN: '伯罗奔尼撒战争', region: 'europe', type: 'conflict', desc: { en: 'Athens vs Sparta — a 27-year war that exhausted classical Greece.', cn: '雅典对战斯巴达——27年战争耗尽了古典希腊。' } },
+    { year: -399, label: 'Death of Socrates', labelCN: '苏格拉底之死', region: 'europe', type: 'cultural', desc: { en: 'Executed for corrupting youth; his student Plato ensures his thought endures.', cn: '被判腐蚀青年处死；其弟子柏拉图令其思想永存。' } },
+    { year: -336, label: 'Alexander the Great', labelCN: '亚历山大大帝', region: 'europe', type: 'political', desc: { en: 'Takes the Macedonian throne; within 12 years he conquers from Egypt to the Indus.', cn: '继承马其顿王位；12年内征服从埃及到印度河的广袤土地。' } },
+    { year: -269, label: "Ashoka's Conversion", labelCN: '阿育王皈依', region: 'southAsia', type: 'cultural', desc: { en: 'After the bloody Kalinga War, Ashoka embraces Buddhism and spreads it across Asia.', cn: '羯陵伽之战后，阿育王皈依佛教并将其传遍亚洲。' } },
+    { year: -221, label: 'Qin Unifies China', labelCN: '秦统一中国', region: 'eastAsia', type: 'political', desc: { en: 'Qin Shi Huang ends the Warring States; standardizes writing, coinage, axle width.', cn: '秦始皇终结战国；统一文字、货币与车轨。' } },
+    { year: -216, label: 'Battle of Cannae', labelCN: '坎尼会战', region: 'europe', type: 'conflict', desc: { en: 'Hannibal annihilates a Roman army double his size — a masterclass in tactical genius.', cn: '汉尼拔以少胜多，歼灭两倍于己的罗马军——战术天才典范。' } },
+    { year: -146, label: 'Destruction of Carthage', labelCN: '迦太基毁灭', region: 'africa', type: 'conflict', desc: { en: 'Rome razes its greatest rival after three Punic Wars — the Mediterranean becomes Mare Nostrum.', cn: '经三次布匿战争罗马夷平其最大敌手——地中海成为罗马内海。' } },
+    { year: -100, label: 'Silk Road Opens', labelCN: '丝绸之路开通', region: 'eastAsia', type: 'trade', desc: { en: 'Han envoys reach Central Asia; silk, spices, ideas and disease begin to flow west.', cn: '汉使到达中亚；丝绸、香料、思想与疾病开始西流。' } },
+    { year: -44, label: 'Assassination of Caesar', labelCN: '凯撒遇刺', region: 'europe', type: 'political', desc: { en: 'Julius Caesar is stabbed on the Ides of March; the Republic\'s long death begins.', cn: '凯撒于三月望日被刺；共和国漫长的终结由此开始。' } },
+    { year: -27, label: 'Roman Empire Begins', labelCN: '罗马帝国建立', region: 'europe', type: 'political', desc: { en: 'Octavian becomes Augustus — the Republic is dead, the Empire is born.', cn: '屋大维称奥古斯都——共和国终结，帝国诞生。' } },
+    // ===== CLASSICAL =====
+    { year: 0, label: 'Jesus of Nazareth', labelCN: '拿撒勒的耶稣', region: 'middleEast', type: 'cultural', desc: { en: 'Approximate birth year of Jesus — the pivot of the Western calendar.', cn: '耶稣约生于此年——成为西方纪年之枢。' } },
+    { year: 79, label: 'Vesuvius Destroys Pompeii', labelCN: '维苏威毁灭庞贝', region: 'europe', type: 'disaster', desc: { en: 'Volcanic eruption preserves a Roman city in ash — a window into everyday antiquity.', cn: '火山喷发将庞贝封存于火山灰——成为古代日常生活的窗口。' } },
+    { year: 105, label: 'Paper Invented', labelCN: '蔡伦造纸', region: 'eastAsia', type: 'invention', desc: { en: 'Cai Lun perfects the paper-making process — a quiet revolution for writing.', cn: '蔡伦改进造纸术——书写领域的静默革命。' } },
+    { year: 220, label: 'End of Han — Three Kingdoms', labelCN: '三国鼎立', region: 'eastAsia', type: 'political', desc: { en: 'Han China fragments into the dramatic Three Kingdoms era celebrated in literature.', cn: '汉朝分裂为文学中广为传颂的三国时代。' } },
+    { year: 313, label: 'Edict of Milan', labelCN: '米兰敕令', region: 'europe', type: 'cultural', desc: { en: 'Constantine legalizes Christianity — within a century it becomes Rome\'s state religion.', cn: '君士坦丁使基督教合法——百年内成为罗马国教。' } },
+    { year: 330, label: 'Constantinople Founded', labelCN: '君士坦丁堡建立', region: 'europe', type: 'construction', desc: { en: 'Constantine builds a "New Rome" on the Bosphorus — capital of the East for 1,100 years.', cn: '君士坦丁在博斯普鲁斯海峡建立"新罗马"——东方首都千余年。' } },
+    { year: 476, label: 'Fall of Western Rome', labelCN: '西罗马灭亡', region: 'europe', type: 'political', desc: { en: 'Odoacer deposes Romulus Augustulus — a quiet end to the Western Roman Empire.', cn: '奥多亚塞废黜罗慕路斯·奥古斯都——西罗马帝国悄然终结。' } },
+    { year: 570, label: 'Birth of Muhammad', labelCN: '穆罕默德诞生', region: 'middleEast', type: 'cultural', desc: { en: 'The Prophet of Islam is born in Mecca — his revelations will reshape three continents.', cn: '伊斯兰先知生于麦加——其启示将重塑三大洲。' } },
+    { year: 622, label: 'Hijra — Islamic Calendar', labelCN: '希吉拉·伊斯兰历', region: 'middleEast', type: 'cultural', desc: { en: "Muhammad's migration to Medina marks year zero of the Islamic calendar.", cn: '穆罕默德迁往麦地那——伊斯兰历元年。' } },
+    { year: 732, label: 'Battle of Tours', labelCN: '图尔战役', region: 'europe', type: 'conflict', desc: { en: 'Charles Martel halts the Muslim advance into Western Europe at Poitiers.', cn: '查理·马特在普瓦捷阻挡穆斯林向西欧的推进。' } },
+    { year: 751, label: 'Battle of Talas', labelCN: '怛罗斯之战', region: 'centralAsia', type: 'conflict', desc: { en: 'Abbasid vs Tang — paper-making is said to spread westward after Chinese prisoners teach it.', cn: '阿拔斯对战唐军——造纸术据传因中国战俘传授而西传。' } },
+    { year: 794, label: 'Heian Capital Founded', labelCN: '平安京建都', region: 'eastAsia', type: 'construction', desc: { en: 'Emperor Kanmu moves Japan\'s capital to Kyoto — beginning the Heian golden age.', cn: '桓武天皇迁都京都——开启平安时代黄金期。' } },
+    { year: 800, label: 'Charlemagne Crowned', labelCN: '查理曼加冕', region: 'europe', type: 'political', desc: { en: 'Pope Leo III crowns Charlemagne Emperor — symbolic revival of Roman authority in the West.', cn: '教宗利奥三世为查理曼加冕——罗马权威在西方的象征性复兴。' } },
+    { year: 868, label: 'Diamond Sutra Printed', labelCN: '《金刚经》印刷', region: 'eastAsia', type: 'invention', desc: { en: "World's oldest dated printed book — a Chinese Buddhist sutra.", cn: '世界现存最早有确切年代的印刷书——中国佛经《金刚经》。' } },
+    { year: 960, label: 'Song Dynasty Founded', labelCN: '宋朝建立', region: 'eastAsia', type: 'political', desc: { en: 'Zhao Kuangyin founds the Song — beginning of an era of commercial and technological flowering.', cn: '赵匡胤建立宋朝——商业与科技繁盛时代的开端。' } },
+    { year: 1000, label: 'Leif Erikson in Vinland', labelCN: '莱夫·埃里克森登陆北美', region: 'americas', type: 'exploration', desc: { en: 'Norse explorers reach Newfoundland — Europeans in the Americas 500 years before Columbus.', cn: '维京探险家到达纽芬兰——比哥伦布早500年的欧洲人美洲登陆。' } },
+    { year: 1054, label: 'Great Schism', labelCN: '东西教会大分裂', region: 'europe', type: 'cultural', desc: { en: 'Christianity splits into Catholic (West) and Orthodox (East) — a rift that endures.', cn: '基督教分裂为天主教（西方）与东正教（东方）——延续至今的裂痕。' } },
+    { year: 1066, label: 'Norman Conquest', labelCN: '诺曼征服', region: 'europe', type: 'conflict', desc: { en: 'William of Normandy defeats Harold at Hastings — reshaping England forever.', cn: '诺曼底威廉在黑斯廷斯击败哈罗德——永久改变英格兰。' } },
+    { year: 1095, label: 'First Crusade Called', labelCN: '第一次十字军东征', region: 'europe', type: 'conflict', desc: { en: 'Pope Urban II calls for holy war to reclaim Jerusalem — two centuries of crusades begin.', cn: '教宗乌尔班二世号召圣战夺回耶路撒冷——两个世纪的十字军东征开始。' } },
+    { year: 1206, label: 'Genghis Khan United Mongols', labelCN: '成吉思汗统一蒙古', region: 'centralAsia', type: 'political', desc: { en: 'Temüjin is proclaimed Genghis Khan — world-shattering conquest follows.', cn: '铁木真被尊为成吉思汗——震动世界的征服随之而来。' } },
+    { year: 1215, label: 'Magna Carta', labelCN: '大宪章', region: 'europe', type: 'political', desc: { en: 'English barons force King John to accept limits on royal power — a cornerstone of constitutionalism.', cn: '英格兰贵族迫使约翰王接受王权限制——立宪主义基石。' } },
+    { year: 1258, label: 'Sack of Baghdad', labelCN: '蒙古陷巴格达', region: 'middleEast', type: 'conquest', desc: { en: "Hulagu's Mongols destroy the Abbasid capital — the end of the Islamic Golden Age.", cn: '旭烈兀的蒙古军摧毁阿拔斯首都——伊斯兰黄金时代终结。' } },
+    { year: 1271, label: "Marco Polo's Journey", labelCN: '马可·波罗东行', region: 'eastAsia', type: 'exploration', desc: { en: 'Venetian merchant reaches Kublai Khan\'s court — his book inspires an age of exploration.', cn: '威尼斯商人抵达忽必烈汗廷——其游记激发探索时代。' } },
+    { year: 1279, label: 'Southern Song Falls', labelCN: '南宋灭亡', region: 'eastAsia', type: 'conquest', desc: { en: 'Mongol conquest completes after the Battle of Yamen — Kublai Khan rules all China.', cn: '崖山之战后南宋灭亡——忽必烈统一中国。' } },
+    { year: 1324, label: "Mansa Musa's Hajj", labelCN: '曼萨·穆萨朝圣', region: 'africa', type: 'cultural', desc: { en: 'Mali emperor distributes so much gold in Cairo that its value crashes for a decade.', cn: '马里皇帝在开罗散发的黄金令当地金价暴跌十年。' } },
+    { year: 1347, label: 'Black Death', labelCN: '黑死病', region: 'europe', type: 'disaster', desc: { en: 'Plague kills 30-50% of Europe\'s population — medieval society is shattered.', cn: '鼠疫使欧洲人口减少30-50%——中世纪社会崩解。' } },
+    { year: 1368, label: 'Ming Founded', labelCN: '明朝建立', region: 'eastAsia', type: 'political', desc: { en: 'Zhu Yuanzhang expels Mongols and founds the Ming — Han Chinese rule restored.', cn: '朱元璋驱逐蒙古建立明朝——汉人政权复兴。' } },
+    { year: 1405, label: 'Zheng He Voyages', labelCN: '郑和下西洋', region: 'eastAsia', type: 'exploration', desc: { en: 'Ming treasure fleet of 300 ships reaches East Africa — decades before Vasco da Gama.', cn: '明代300艘宝船舰队远达东非——比达伽马早数十年。' } },
+    { year: 1440, label: 'Gutenberg Press', labelCN: '古腾堡印刷机', region: 'europe', type: 'invention', desc: { en: 'Movable type printing arrives in Europe — knowledge explodes in volume and access.', cn: '活字印刷术传入欧洲——知识在数量与可及性上爆炸式增长。' } },
+    { year: 1453, label: 'Fall of Constantinople', labelCN: '君士坦丁堡陷落', region: 'europe', type: 'conquest', desc: { en: 'Ottoman cannons breach Constantinople\'s walls — the Roman Empire finally ends after 2,200 years.', cn: '奥斯曼大炮轰破君士坦丁堡城墙——延续2200年的罗马帝国终结。' } },
+    { year: 1492, label: 'Columbus Reaches Americas', labelCN: '哥伦布到达美洲', region: 'americas', type: 'exploration', desc: { en: "Genoese sailor lands in Bahamas — the Columbian Exchange begins.", cn: '热那亚水手登陆巴哈马——哥伦布大交换开始。' } },
+    { year: 1498, label: 'Vasco da Gama to India', labelCN: '达伽马抵达印度', region: 'southAsia', type: 'exploration', desc: { en: 'Portuguese establish a direct sea route to India — rewriting global trade.', cn: '葡萄牙开辟通往印度的直航海路——重写全球贸易。' } },
+    { year: 1517, label: 'Protestant Reformation', labelCN: '宗教改革', region: 'europe', type: 'cultural', desc: { en: "Luther's 95 Theses spark the schism that divides Western Christianity.", cn: '路德《九十五条论纲》引发分裂西方基督教的大改革。' } },
+    { year: 1519, label: 'Cortés Reaches Tenochtitlan', labelCN: '科尔特斯抵达特诺奇蒂特兰', region: 'americas', type: 'conquest', desc: { en: 'Spanish conquistador arrives at the Aztec capital — fall follows within two years.', cn: '西班牙征服者抵达阿兹特克首都——两年内被征服。' } },
+    { year: 1543, label: 'Copernicus — De Revolutionibus', labelCN: '哥白尼《天体运行论》', region: 'europe', type: 'invention', desc: { en: 'Heliocentric model published — Earth is no longer the universe\'s center.', cn: '日心说发表——地球不再是宇宙中心。' } },
+    { year: 1588, label: 'Spanish Armada Defeated', labelCN: '西班牙无敌舰队败北', region: 'europe', type: 'conflict', desc: { en: 'English navy defeats Spain — beginning of Atlantic power shift.', cn: '英国海军击败西班牙——大西洋权力转移开始。' } },
+    { year: 1603, label: 'Tokugawa Shogunate', labelCN: '德川幕府建立', region: 'eastAsia', type: 'political', desc: { en: 'Ieyasu becomes shogun — 250 years of peace and isolation begin.', cn: '德川家康任将军——250年和平与锁国开始。' } },
+    { year: 1609, label: "Galileo's Telescope", labelCN: '伽利略望远镜', region: 'europe', type: 'invention', desc: { en: 'Galileo observes moons of Jupiter — confirming Copernicus.', cn: '伽利略观察木星卫星——证实哥白尼学说。' } },
+    { year: 1644, label: 'Ming Falls; Qing Enters Beijing', labelCN: '明亡清兴', region: 'eastAsia', type: 'political', desc: { en: 'Manchu forces take Beijing as Chongzhen Emperor hangs himself — Qing dynasty begins.', cn: '崇祯帝自缢，满洲入京——清朝建立。' } },
+    { year: 1687, label: "Newton's Principia", labelCN: '牛顿《自然哲学的数学原理》', region: 'europe', type: 'invention', desc: { en: 'Isaac Newton publishes laws of motion and universal gravitation — modern physics is born.', cn: '牛顿发表运动定律与万有引力——现代物理学诞生。' } },
+    { year: 1707, label: 'Acts of Union', labelCN: '联合法案', region: 'europe', type: 'political', desc: { en: 'England and Scotland unite as the Kingdom of Great Britain.', cn: '英格兰与苏格兰合并为大不列颠王国。' } },
+    { year: 1757, label: 'Battle of Plassey', labelCN: '普拉西战役', region: 'southAsia', type: 'conflict', desc: { en: 'British East India Company defeats Bengal Nawab — British dominance of India begins.', cn: '英国东印度公司击败孟加拉纳瓦卜——英国主导印度开始。' } },
+    { year: 1776, label: 'American Independence', labelCN: '美国独立', region: 'americas', type: 'political', desc: { en: 'Thirteen colonies declare independence — a republic of unprecedented scope.', cn: '十三殖民地宣布独立——空前规模的共和国诞生。' } },
+    { year: 1789, label: 'French Revolution', labelCN: '法国大革命', region: 'europe', type: 'political', desc: { en: 'Storming of the Bastille — the age of revolutions transforms European politics.', cn: '攻占巴士底狱——革命时代重塑欧洲政治。' } },
+    { year: 1804, label: 'Haiti Independence', labelCN: '海地独立', region: 'americas', type: 'political', desc: { en: 'First successful slave revolt establishes the second republic in the Americas.', cn: '史上首次成功的奴隶革命建立美洲第二个共和国。' } },
+    { year: 1815, label: 'Battle of Waterloo', labelCN: '滑铁卢战役', region: 'europe', type: 'conflict', desc: { en: "Napoleon's final defeat ends the French imperial era; Congress of Vienna reshapes Europe.", cn: '拿破仑最终失败，法兰西帝国时代终结；维也纳会议重塑欧洲。' } },
+    { year: 1839, label: 'First Opium War', labelCN: '第一次鸦片战争', region: 'eastAsia', type: 'conflict', desc: { en: 'Britain forces China to open to opium trade — Qing "unequal treaties" era begins.', cn: '英国迫使中国开放鸦片贸易——清朝不平等条约时代开始。' } },
+    { year: 1848, label: 'Communist Manifesto', labelCN: '《共产党宣言》', region: 'europe', type: 'cultural', desc: { en: 'Marx and Engels publish a pamphlet that will shake the 20th century.', cn: '马克思与恩格斯发表震撼20世纪的小册子。' } },
+    { year: 1853, label: 'Perry Opens Japan', labelCN: '佩里叩关', region: 'eastAsia', type: 'political', desc: { en: "Commodore Perry's 'black ships' end Japan's two-century isolation.", cn: '佩里的"黑船"结束日本二百年锁国。' } },
+    { year: 1859, label: "Darwin's Origin of Species", labelCN: '达尔文《物种起源》', region: 'europe', type: 'invention', desc: { en: 'Theory of evolution by natural selection transforms biology and human self-understanding.', cn: '自然选择的演化论改变生物学与人类自我认识。' } },
+    { year: 1861, label: 'American Civil War', labelCN: '美国内战', region: 'americas', type: 'conflict', desc: { en: 'North vs South over slavery — ends with emancipation and a reunited nation.', cn: '南北为奴隶制开战——以解放黑奴与国家重新统一告终。' } },
+    { year: 1868, label: 'Meiji Restoration', labelCN: '明治维新', region: 'eastAsia', type: 'political', desc: { en: 'Japan launches breakneck modernization; within decades, Asia\'s first industrial power.', cn: '日本启动急速现代化；数十年内成为亚洲首个工业强国。' } },
+    { year: 1871, label: 'German Unification', labelCN: '德国统一', region: 'europe', type: 'political', desc: { en: 'Bismarck proclaims the German Empire at Versailles — European balance shattered.', cn: '俾斯麦在凡尔赛宣告德意志帝国成立——欧洲均势打破。' } },
+    { year: 1885, label: 'Scramble for Africa', labelCN: '瓜分非洲', region: 'africa', type: 'political', desc: { en: 'Berlin Conference carves up Africa among European powers — colonial map consolidated.', cn: '柏林会议将非洲在欧洲列强间瓜分——殖民地图固化。' } },
+    { year: 1903, label: 'Wright Flyer', labelCN: '莱特兄弟飞机', region: 'americas', type: 'invention', desc: { en: 'First powered heavier-than-air flight at Kitty Hawk — humanity leaves the ground.', cn: '小鹰镇首次动力飞行——人类离开地面。' } },
+    { year: 1911, label: 'Xinhai Revolution', labelCN: '辛亥革命', region: 'eastAsia', type: 'political', desc: { en: 'Qing dynasty falls — ends 2,100 years of imperial rule in China.', cn: '清朝倾覆——结束中国2100年的帝制。' } },
+    { year: 1914, label: 'World War I Begins', labelCN: '第一次世界大战', region: 'europe', type: 'conflict', desc: { en: 'Assassination in Sarajevo cascades into industrial-scale war — 17 million dead.', cn: '萨拉热窝枪声引发工业规模战争——1700万人罹难。' } },
+    { year: 1917, label: 'Russian Revolution', labelCN: '十月革命', region: 'europe', type: 'political', desc: { en: 'Bolsheviks seize power — the world\'s first communist state is born.', cn: '布尔什维克夺权——世界首个社会主义国家诞生。' } },
+    { year: 1929, label: 'Great Depression', labelCN: '大萧条', region: 'americas', type: 'disaster', desc: { en: 'Wall Street Crash triggers a decade of global economic collapse.', cn: '华尔街股灾引发全球十年经济崩溃。' } },
+    { year: 1939, label: 'World War II Begins', labelCN: '第二次世界大战', region: 'europe', type: 'conflict', desc: { en: 'Germany invades Poland — six years of global war and genocide follow.', cn: '德国入侵波兰——六年全球战争与种族灭绝随之而来。' } },
+    { year: 1945, label: 'Hiroshima & UN', labelCN: '广岛·联合国成立', region: 'americas', type: 'political', desc: { en: 'Atomic bombs end WWII; United Nations founded to prevent future world wars.', cn: '原子弹结束二战；联合国成立以防止未来世界大战。' } },
+    { year: 1947, label: 'Indian Independence', labelCN: '印度独立', region: 'southAsia', type: 'political', desc: { en: 'British Raj partitions into India and Pakistan — millions migrate, 1-2 million die.', cn: '英属印度分裂为印度与巴基斯坦——数百万人迁徙，百万人死亡。' } },
+    { year: 1949, label: 'PRC Founded', labelCN: '中华人民共和国成立', region: 'eastAsia', type: 'political', desc: { en: 'Mao Zedong proclaims the People\'s Republic in Beijing.', cn: '毛泽东在北京宣告中华人民共和国成立。' } },
+    { year: 1957, label: 'Sputnik Launches', labelCN: '斯普特尼克升空', region: 'europe', type: 'invention', desc: { en: 'USSR puts the first artificial satellite in orbit — the Space Age begins.', cn: '苏联发射首颗人造卫星——太空时代开始。' } },
+    { year: 1969, label: 'Moon Landing', labelCN: '人类登月', region: 'americas', type: 'invention', desc: { en: 'Apollo 11: Neil Armstrong takes "one small step" — humans walk on another world.', cn: '阿波罗11号：阿姆斯特朗迈出"一小步"——人类行走于另一星球。' } },
+    { year: 1978, label: "China's Reform & Opening", labelCN: '中国改革开放', region: 'eastAsia', type: 'political', desc: { en: 'Deng Xiaoping launches reforms that will lift 800M out of poverty over 40 years.', cn: '邓小平发动改革——40年内使8亿人脱贫。' } },
+    { year: 1989, label: 'Fall of the Berlin Wall', labelCN: '柏林墙倒塌', region: 'europe', type: 'political', desc: { en: 'East Germans pour through the Wall — the Cold War\'s iconic barrier crumbles.', cn: '东德人涌过柏林墙——冷战标志性屏障崩塌。' } },
+    { year: 1991, label: 'Soviet Union Dissolves', labelCN: '苏联解体', region: 'europe', type: 'political', desc: { en: 'Fifteen successor states emerge — the 74-year Soviet experiment ends.', cn: '15个继承国出现——74年的苏维埃实验终结。' } }
 ];
 
 // Capital cities for major entities
@@ -270,7 +514,7 @@ const WORLD_HISTORY = {
             { id: "jin_west", name: "Western Jin", nameCN: "西晋", start: 266, end: 316, slot: 0, width: 2, color: '#A890B8' },
             { id: "sixteen_k", name: "16 Kingdoms", nameCN: "十六国", start: 316, end: 439, slot: 0, width: 1, color: '#9B9B9B' },
             { id: "n_wei", name: "Northern Wei", nameCN: "北魏", start: 439, end: 534, slot: 0, width: 1, color: '#8B9BAB' },
-            { id: "n_dynasties", name: "N. Dynasties", nameCN: "北朝", start: 534, end: 581, slot: 0, width: 1, color: '#9BA5B0' },
+            { id: "n_dynasties", name: "Northern Dynasties", nameCN: "北朝", start: 534, end: 581, slot: 0, width: 1, color: '#9BA5B0', category: 'kingdom' },
             { id: "sui", name: "Sui", nameCN: "隋", start: 581, end: 618, slot: 0, width: 2, color: '#C9A090', category: 'empire' },
             { id: "tang", name: "Tang", nameCN: "唐", start: 618, end: 907, slot: 0, width: 2, color: '#D4C896', category: 'empire', rulers: ['Taizong', 'Wu Zetian', 'Xuanzong'] },
             { id: "five_dyn", name: "Five Dynasties", nameCN: "五代", start: 907, end: 960, slot: 0, width: 1, color: '#A0A0A0' },
@@ -288,7 +532,7 @@ const WORLD_HISTORY = {
             { id: "chu_state", name: "Chu State", nameCN: "楚国", start: -500, end: -223, slot: 1, width: 1, color: '#8BAA8B' },
             { id: "shu_wu", name: "Shu/Wu", nameCN: "蜀/吴", start: 220, end: 280, slot: 1, width: 1, color: '#C9A878' },
             { id: "e_jin", name: "Eastern Jin", nameCN: "东晋", start: 316, end: 420, slot: 1, width: 1, color: '#A890B8' },
-            { id: "s_dynasties", name: "S. Dynasties", nameCN: "南朝", start: 420, end: 589, slot: 1, width: 1, color: '#8BA4B8' },
+            { id: "s_dynasties", name: "Southern Dynasties", nameCN: "南朝", start: 420, end: 589, slot: 1, width: 1, color: '#8BA4B8', category: 'kingdom' },
             { id: "ten_kingdoms", name: "Ten Kingdoms", nameCN: "十国", start: 907, end: 979, slot: 1, width: 1, color: '#B0B0B0' },
             { id: "s_song", name: "Southern Song", nameCN: "南宋", start: 1127, end: 1279, slot: 1, width: 1, color: '#9BB99B' },
                                                             
@@ -554,7 +798,7 @@ const WORLD_HISTORY = {
             // Akkadian Empire - first major expansion (Mesopotamia + parts of surrounding areas)
             { id: "akkad", name: "Akkadian Empire", nameCN: "阿卡德帝国", start: -2334, end: -2154, slot: 0, width: 2, color: '#D2691E', category: 'empire', rulers: ['Sargon of Akkad'] },
             // During Akkadian: Elam remains independent
-            { id: "elam_akkad", name: "Elam", nameCN: "埃兰", start: -2334, end: -2154, slot: 2, width: 1, color: '#8B4513' },
+            { id: "elam_akkad", name: "Elam", nameCN: "埃兰", start: -2334, end: -2154, slot: 1, width: 1, color: '#8B4513' },
             // Post-Akkadian fragmentation
             { id: "gutian", name: "Gutian", nameCN: "古提", start: -2154, end: -2112, slot: 0, width: 1, color: '#696969' },
             { id: "elam_gutian", name: "Elam", nameCN: "埃兰", start: -2154, end: -2004, slot: 1, width: 1, color: '#A0522D' },
@@ -1430,22 +1674,68 @@ function renderYearScale() {
     elements.yearScale.innerHTML = '';
     const totalHeight = yearToY(CONFIG.timelineEnd);
 
-    let step = 100;
-    if (CONFIG.yearHeight < 0.5) step = 1000;
-    else if (CONFIG.yearHeight < 1) step = 500;
-    else if (CONFIG.yearHeight < 2) step = 250;
-    else if (CONFIG.yearHeight < 4) step = 200;
-    else if (CONFIG.yearHeight > 8) step = 50;
+    // Choose tick step based on zoom level
+    let step;
+    if (CONFIG.yearHeight < 0.3) step = 500;
+    else if (CONFIG.yearHeight < 0.6) step = 250;
+    else if (CONFIG.yearHeight < 1.5) step = 100;
+    else if (CONFIG.yearHeight < 4) step = 50;
+    else if (CONFIG.yearHeight < 8) step = 25;
+    else step = 10;
 
-    for (let year = CONFIG.timelineStart; year <= CONFIG.timelineEnd; year += step) {
+    // Snap start to a multiple of step
+    const startYear = Math.ceil(CONFIG.timelineStart / step) * step;
+
+    for (let year = startYear; year <= CONFIG.timelineEnd; year += step) {
         const mark = document.createElement('div');
-        mark.className = year % (step * 2) === 0 ? 'year-mark century' : 'year-mark';
-        mark.style.top = `${yearToY(year)}px`;
+        const isMillennium = year % 1000 === 0;
+        const isCentury = year % 100 === 0;
+        let cls = 'year-mark';
+        if (isMillennium) cls += ' millennium';
+        else if (isCentury) cls += ' century';
+        mark.className = cls;
+        mark.style.top = `${yearToY(year) + 35}px`;
         mark.textContent = formatYear(year);
         elements.yearScale.appendChild(mark);
     }
 
-    elements.yearScale.style.height = `${totalHeight}px`;
+    elements.yearScale.style.height = `${totalHeight + 35}px`;
+}
+
+/**
+ * Detect and fix obvious data conflicts where two entities sharing the SAME
+ * slot footprint also overlap in time (e.g. Babylon IV-V is "still going" while
+ * the Assyrian Empire occupies the same Mesopotamian slot). The earlier-starting
+ * entity is trimmed to end when the later one begins.
+ *
+ * Multi-slot empires that overlap with single-slot kingdoms (Napoleon vs Spain)
+ * are handled separately by render-order layering rather than by trimming, since
+ * those usually represent legitimate brief occupations.
+ */
+function normalizeOverlaps() {
+    let trims = 0;
+    Object.values(WORLD_HISTORY).forEach(region => {
+        const entities = region.entities;
+        for (const a of entities) {
+            // Find the earliest later-starting entity that shares a's exact slot
+            // footprint. Trim a's end so the two don't visually overlap.
+            // (We accept that this loses any "a continued after b ended" history;
+            // the slot grid only allows one polity per slot at a time.)
+            let earliest = Infinity;
+            for (const b of entities) {
+                if (b === a) continue;
+                if (b.start <= a.start) continue;
+                if (b.start >= a.end) continue;
+                if (b.slot !== a.slot || b.width !== a.width) continue;
+                if (b.start < earliest) earliest = b.start;
+            }
+            if (earliest < a.end) {
+                a.end = earliest;
+                trims++;
+            }
+        }
+    });
+    return trims;
 }
 
 function renderTimeline() {
@@ -1462,13 +1752,19 @@ function renderTimeline() {
         if (region) totalSlots += region.slotEnd + 1;
     });
 
-    elements.timelineGrid.style.height = `${totalHeight}px`;
-    elements.timelineGrid.style.width = `${(totalSlots + 2) * CONFIG.baseColumnWidth}px`;
+    elements.timelineGrid.style.height = `${totalHeight + 50}px`;
+    elements.timelineGrid.style.width = `${(totalSlots + 1) * CONFIG.baseColumnWidth + 40}px`;
 
-    // Render era backgrounds
+    // Era backgrounds
     if (CONFIG.showEraBackgrounds) {
         renderEraBackgrounds(totalSlots);
     }
+
+    const query = CONFIG.searchQuery ? CONFIG.searchQuery.toLowerCase() : '';
+    let matchCount = 0;
+    let visibleCount = 0;
+
+    document.body.classList.toggle('search-active', !!query);
 
     visibleRegions.forEach(regionId => {
         const region = WORLD_HISTORY[regionId];
@@ -1476,67 +1772,103 @@ function renderTimeline() {
 
         renderRegionHeader(region, regionId, currentSlotOffset);
 
-        region.entities.forEach(entity => {
-            // Filter by search query
-            if (CONFIG.searchQuery) {
-                const query = CONFIG.searchQuery.toLowerCase();
+        // Render order: smallest territorial footprints first (bottom layer),
+        // larger empires drawn on top. This way a multi-slot empire visually
+        // overlays the single-slot kingdoms it temporarily occupies.
+        const orderedEntities = region.entities
+            .map((e, originalIdx) => ({ e, originalIdx }))
+            .sort((x, y) => {
+                if (x.e.width !== y.e.width) return x.e.width - y.e.width;
+                if (x.e.start !== y.e.start) return x.e.start - y.e.start;
+                return x.originalIdx - y.originalIdx;
+            });
+
+        orderedEntities.forEach(({ e: entity, originalIdx: idx }) => {
+            // Category filter
+            if (CONFIG.categoryFilter && entity.category !== CONFIG.categoryFilter) return;
+
+            // Search match
+            let isMatch = true;
+            if (query) {
                 const matchesName = entity.name.toLowerCase().includes(query);
                 const matchesNameCN = (entity.nameCN || '').toLowerCase().includes(query);
                 const matchesRulers = entity.rulers && entity.rulers.some(r => r.toLowerCase().includes(query));
-                if (!matchesName && !matchesNameCN && !matchesRulers) {
-                    return; // Skip non-matching entities
-                }
+                isMatch = matchesName || matchesNameCN || matchesRulers;
             }
-            renderEntity(entity, regionId, currentSlotOffset);
+            if (query && !isMatch) {
+                // render dimmed anyway so user sees context
+                renderEntity(entity, regionId, currentSlotOffset, { dim: true, animIndex: idx });
+                visibleCount++;
+                return;
+            }
+            renderEntity(entity, regionId, currentSlotOffset, { match: query && isMatch, animIndex: idx });
+            if (query && isMatch) matchCount++;
+            visibleCount++;
         });
+        // End orderedEntities iteration
+
+        // Mark moments when a polity gains/loses territory horizontally
+        if (!CONFIG.categoryFilter && !query) {
+            renderTerritorialTransitions(region, currentSlotOffset);
+        }
 
         currentSlotOffset += region.slotEnd + 1;
     });
+
+    // Render event medallions (numbered circles pinned to region events + historical events)
+    if (CONFIG.showEvents) {
+        renderEventMedallions();
+    }
 
     // Render connections after all entities
     if (CONFIG.showConnections) {
         renderConnections();
     }
 
-    // Update minimap
-    updateMinimap();
+    // Stats
+    updateStatsChip(visibleCount, matchCount);
 }
 
 function renderEraBackgrounds(totalSlots) {
-    const gridWidth = (totalSlots + 2) * CONFIG.baseColumnWidth;
+    const gridWidth = (totalSlots + 1) * CONFIG.baseColumnWidth + 40;
 
-    HISTORICAL_ERAS.forEach(era => {
+    HISTORICAL_ERAS.forEach((era, idx) => {
         const top = yearToY(era.start) + 35;
         const height = yearToY(era.end) - yearToY(era.start);
 
         const eraDiv = document.createElement('div');
         eraDiv.className = 'era-background';
+        const alternateTint = idx % 2 === 0 ? 'rgba(124, 95, 19, 0.04)' : 'rgba(43, 70, 119, 0.035)';
         eraDiv.style.cssText = `
             position: absolute;
             top: ${top}px;
             left: 0;
             width: ${gridWidth}px;
             height: ${height}px;
-            background: ${era.color};
+            background: ${alternateTint};
             pointer-events: none;
             z-index: 0;
         `;
 
-        // Era label on left side
+        // Era boundary line (at the start)
+        if (era.start > CONFIG.timelineStart) {
+            const tick = document.createElement('div');
+            tick.className = 'era-tick';
+            tick.style.top = `${yearToY(era.start) + 35}px`;
+            elements.timelineGrid.appendChild(tick);
+        }
+
+        // Era label — vertical on left side
         const label = document.createElement('div');
         label.className = 'era-label';
         label.style.cssText = `
             position: absolute;
-            left: 5px;
+            left: 6px;
             top: 50%;
             transform: translateY(-50%) rotate(-90deg);
             transform-origin: left center;
-            font-family: 'Cinzel', serif;
             font-size: 10px;
-            color: rgba(0,0,0,0.25);
-            white-space: nowrap;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
+            pointer-events: none;
         `;
         label.textContent = CONFIG.language === 'cn' ? era.nameCN : era.name;
         eraDiv.appendChild(label);
@@ -1546,115 +1878,108 @@ function renderEraBackgrounds(totalSlots) {
 }
 
 function renderRegionHeader(region, regionId, slotOffset) {
-    const colors = {
-        eastAsia: '#C41E3A',
-        europe: '#4169E1',
-        middleEast: '#CD853F',
-        southAsia: '#FF8C00',
-        centralAsia: '#708090',
-        africa: '#D2691E',
-        americas: '#2E8B57',
-        southeastAsia: '#9932CC'
+    const regionStyles = {
+        eastAsia:       { base: 'var(--r-eastasia)',     ink: 'var(--r-eastasia-ink)',     tint: 'var(--r-eastasia-tint)' },
+        europe:         { base: 'var(--r-europe)',       ink: 'var(--r-europe-ink)',       tint: 'var(--r-europe-tint)' },
+        middleEast:     { base: 'var(--r-middleeast)',   ink: 'var(--r-middleeast-ink)',   tint: 'var(--r-middleeast-tint)' },
+        southAsia:      { base: 'var(--r-southasia)',    ink: 'var(--r-southasia-ink)',    tint: 'var(--r-southasia-tint)' },
+        centralAsia:    { base: 'var(--r-centralasia)',  ink: 'var(--r-centralasia-ink)',  tint: 'var(--r-centralasia-tint)' },
+        africa:         { base: 'var(--r-africa)',       ink: 'var(--r-africa-ink)',       tint: 'var(--r-africa-tint)' },
+        americas:       { base: 'var(--r-americas)',     ink: 'var(--r-americas-ink)',     tint: 'var(--r-americas-tint)' },
+        southeastAsia:  { base: 'var(--r-seasia)',       ink: 'var(--r-seasia-ink)',       tint: 'var(--r-seasia-tint)' }
     };
+    const style = regionStyles[regionId] || regionStyles.europe;
 
     const totalHeight = yearToY(CONFIG.timelineEnd);
-    const color = colors[regionId];
 
-    // Region separator line (vertical)
+    // Vertical separator for adjacent regions
     if (slotOffset > 0) {
         const separator = document.createElement('div');
         separator.className = 'region-separator';
         separator.style.cssText = `
             position: absolute;
             top: 35px;
-            left: ${slotOffset * CONFIG.baseColumnWidth - 2}px;
-            width: 4px;
-            height: ${totalHeight - 35}px;
-            background: linear-gradient(180deg,
-                ${color}40 0%,
-                ${color}20 10%,
-                ${color}08 50%,
-                ${color}20 90%,
-                ${color}40 100%
-            );
+            left: ${slotOffset * CONFIG.baseColumnWidth - 1}px;
+            width: 1px;
+            height: ${totalHeight}px;
             pointer-events: none;
         `;
         elements.timelineGrid.appendChild(separator);
     }
 
-    // Header bar
     const header = document.createElement('div');
     header.className = 'region-header';
+    header.setAttribute('data-region', regionId);
     header.style.cssText = `
         position: absolute;
         top: 0;
         left: ${slotOffset * CONFIG.baseColumnWidth}px;
         width: ${region.slotEnd * CONFIG.baseColumnWidth}px;
-        height: 32px;
-        background: linear-gradient(90deg, ${color}50, ${color}20, transparent);
-        border-bottom: 3px solid ${color};
-        border-left: 3px solid ${color};
+        height: 34px;
         display: flex;
-        align-items: center;
-        padding-left: 12px;
-        font-family: 'Cinzel', serif;
-        font-size: 0.85rem;
-        color: #1A1408;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-shadow: 0 1px 0 rgba(255,255,255,0.5);
-        z-index: 10;
+        flex-direction: column;
+        justify-content: center;
+        padding-left: 14px;
+        z-index: 15;
     `;
-    header.textContent = getName(region);
+    // Dual-language subtitle via data attribute
+    header.textContent = CONFIG.language === 'cn' ? (region.nameCN || region.name) : region.name;
+    header.setAttribute('data-subtitle', CONFIG.language === 'cn' ? region.name : (region.nameCN || ''));
     elements.timelineGrid.appendChild(header);
 }
 
-function renderEntity(entity, regionId, slotOffset) {
+function renderEntity(entity, regionId, slotOffset, opts = {}) {
     const block = document.createElement('div');
     block.className = 'dynasty-block';
+    if (opts.match) block.classList.add('search-match');
+    if (opts.dim) block.classList.add('dim');
 
-    const top = yearToY(entity.start) + 35; // Account for header
-    const height = Math.max(yearToY(entity.end) - yearToY(entity.start), 8);
-    const left = (slotOffset + entity.slot) * CONFIG.baseColumnWidth + 1;
+    const top = yearToY(entity.start) + 35;
+    const rawHeight = yearToY(entity.end) - yearToY(entity.start);
+    const height = Math.max(rawHeight, 3);
 
-    // Width fills the entire slot with minimal gap (1px each side)
-    // This creates the dense, territory-based visualization
-    const baseWidth = entity.width * CONFIG.baseColumnWidth - 2;
-    const width = baseWidth;
+    // Slot grid is linear (anchored). Block visual width is proportional to
+    // territorial extent but clamped/compressed for legibility.
+    const slotLeft = (slotOffset + entity.slot) * CONFIG.baseColumnWidth;
+    const slotSpan = entity.width * CONFIG.baseColumnWidth;
+    const visualWidth = computeBlockWidth(entity.width);
 
-    // Store position for connections
+    // Center the block within its slot range so wide-but-clamped empires don't
+    // visually attach only to one edge.
+    const left = slotLeft + (slotSpan - visualWidth) / 2;
+    const width = visualWidth;
+
     entityPositions[entity.id] = {
-        top: top,
-        left: left,
-        width: Math.max(width, 28),
-        height: height,
-        centerX: left + Math.max(width, 28) / 2,
+        top, left, width, height,
+        centerX: left + width / 2,
         centerY: top + height / 2
     };
 
-    // Darken color slightly for better contrast
+    // Flat fill — pale tint of the entity's base color
     const baseColor = entity.color;
+    const fill = paleTint(baseColor);
 
-    // Add highlight for search matches
-    const isSearchMatch = CONFIG.searchQuery && (
-        entity.name.toLowerCase().includes(CONFIG.searchQuery.toLowerCase()) ||
-        (entity.nameCN || '').toLowerCase().includes(CONFIG.searchQuery.toLowerCase())
-    );
+    // Size class based on block dimensions.
+    let sizeClass = '';
+    if (height < 14) sizeClass = 'block-tiny';
+    else if (height < 26) sizeClass = 'block-small';
+    else if (width < 44 && height > 80) sizeClass = 'block-narrow';
+    else if (height > 140 && width > 100) sizeClass = 'block-huge';
+    else if (height > 80 && width > 80) sizeClass = 'block-large';
+    if (sizeClass) block.classList.add(sizeClass);
 
     block.style.cssText = `
         top: ${top}px;
         left: ${left}px;
-        width: ${Math.max(width, 28)}px;
+        width: ${width}px;
         height: ${height}px;
-        background: linear-gradient(135deg, ${baseColor} 0%, ${baseColor}dd 100%);
-        min-height: 8px;
-        ${isSearchMatch ? 'outline: 3px solid var(--gold-leaf); outline-offset: 2px;' : ''}
+        background: ${fill};
+        --i: ${opts.animIndex || 0};
     `;
 
     const content = document.createElement('div');
     content.className = 'dynasty-content';
 
-    // Add category class for styling
     if (entity.category && ENTITY_CATEGORIES[entity.category]) {
         block.classList.add(`category-${entity.category}`);
     }
@@ -1664,11 +1989,25 @@ function renderEntity(entity, regionId, slotOffset) {
     nameEl.textContent = getName(entity);
     content.appendChild(nameEl);
 
-    if (height > 40) {
+    // Only show years if block has enough space
+    if (height > 50 && width > 52) {
         const yearsEl = document.createElement('div');
         yearsEl.className = 'dynasty-years';
-        yearsEl.textContent = `${formatYear(entity.start)}`;
+        // Show compact form: just start year on small blocks; range on larger
+        if (height > 90 && width > 80) {
+            yearsEl.textContent = `${formatYear(entity.start)} – ${formatYear(entity.end)}`;
+        } else {
+            yearsEl.textContent = formatYear(entity.start);
+        }
         content.appendChild(yearsEl);
+
+        // Show top ruler if block is big enough
+        if (height > 110 && entity.rulers && entity.rulers.length && width > 80) {
+            const rulerEl = document.createElement('div');
+            rulerEl.className = 'dynasty-rulers';
+            rulerEl.textContent = `† ${entity.rulers[0]}`;
+            content.appendChild(rulerEl);
+        }
     }
 
     block.appendChild(content);
@@ -1688,32 +2027,123 @@ function renderEntity(entity, regionId, slotOffset) {
     elements.timelineGrid.appendChild(block);
 }
 
-function renderEvents() {
-    elements.eventsOverlay.innerHTML = '';
-    if (!CONFIG.showEvents) return;
+// Adjust a hex color by a given lightness delta (-50 to +50)
+function adjustColor(hex, delta) {
+    if (!hex || hex[0] !== '#') return hex;
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = Math.max(0, Math.min(255, parseInt(h.slice(0,2),16) + delta));
+    const g = Math.max(0, Math.min(255, parseInt(h.slice(2,4),16) + delta));
+    const b = Math.max(0, Math.min(255, parseInt(h.slice(4,6),16) + delta));
+    return '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
+}
 
-    const visibleRegions = getVisibleRegions();
+// Mix toward white for a clean pale tint suitable for flat backgrounds.
+// Returns a CSS color string (rgb).
+function paleTint(hex, mix = 0.55) {
+    if (!hex || hex[0] !== '#') return hex;
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = parseInt(h.slice(0,2),16);
+    const g = parseInt(h.slice(2,4),16);
+    const b = parseInt(h.slice(4,6),16);
+    const mr = Math.round(r + (255 - r) * mix);
+    const mg = Math.round(g + (255 - g) * mix);
+    const mb = Math.round(b + (255 - b) * mix);
+    return `rgb(${mr}, ${mg}, ${mb})`;
+}
 
-    visibleRegions.forEach(regionId => {
-        const region = WORLD_HISTORY[regionId];
-        if (!region || !region.events) return;
+// After all entities in a region are rendered, walk through them in chronological
+// order (per slot) and detect places where the SAME polity (matching name) gains
+// or loses territory (i.e. transitions to a different width). Draw a thin
+// horizontal "territorial tick" line at that moment to make the change visible.
+function renderTerritorialTransitions(region, slotOffset) {
+    if (!region || !region.entities) return;
 
-        region.events.forEach(event => {
-            const marker = document.createElement('div');
-            marker.className = 'event-marker';
-            marker.style.top = `${yearToY(event.year)}px`;
-
-            const tooltip = document.createElement('div');
-            tooltip.className = 'event-tooltip';
-            tooltip.innerHTML = `
-                <span class="event-year">${formatYear(event.year)}</span>
-                <span class="event-text">${event.event}</span>
-            `;
-            marker.appendChild(tooltip);
-
-            elements.eventsOverlay.appendChild(marker);
-        });
+    // Group entities by name (since IDs vary like roman_republic_1/2/3)
+    const groupsByName = {};
+    region.entities.forEach(e => {
+        const key = e.name;
+        if (!groupsByName[key]) groupsByName[key] = [];
+        groupsByName[key].push(e);
     });
+
+    Object.values(groupsByName).forEach(group => {
+        if (group.length < 2) return;
+        // Sort chronologically by start year
+        group.sort((a, b) => a.start - b.start);
+        for (let i = 1; i < group.length; i++) {
+            const prev = group[i - 1];
+            const curr = group[i];
+            // Only draw if it's a contiguous transition (within 2 years tolerance)
+            if (Math.abs(curr.start - prev.end) > 2) continue;
+            // Only draw if territory actually changed
+            const prevSlot = prev.slot;
+            const prevEnd = prev.slot + prev.width;
+            const currSlot = curr.slot;
+            const currEnd = curr.slot + curr.width;
+            if (prevSlot === currSlot && prevEnd === currEnd) continue;
+
+            const yr = curr.start;
+            const top = yearToY(yr) + 35;
+            // Use the actual rendered positions of prev and curr for the tick
+            const prevPos = entityPositions[prev.id];
+            const currPos = entityPositions[curr.id];
+            if (!prevPos || !currPos) continue;
+            const fromX = Math.min(prevPos.left, currPos.left);
+            const toX = Math.max(prevPos.left + prevPos.width, currPos.left + currPos.width);
+            const tick = document.createElement('div');
+            tick.className = 'territorial-tick';
+            tick.style.cssText = `
+                top: ${top}px;
+                left: ${fromX}px;
+                width: ${toX - fromX}px;
+            `;
+            elements.timelineGrid.appendChild(tick);
+        }
+    });
+}
+
+// Render numbered event medallions pinned to HISTORICAL_EVENTS years, placed on the left rail
+function renderEventMedallions() {
+    // Build a map of year -> events and render them slightly staggered when clustered
+    HISTORICAL_EVENTS.forEach((event, idx) => {
+        if (event.year < CONFIG.timelineStart || event.year > CONFIG.timelineEnd) return;
+        const medallion = document.createElement('div');
+        medallion.className = `event-medallion type-${event.type}`;
+        medallion.style.top = `${yearToY(event.year) + 35}px`;
+        medallion.style.left = `-22px`;
+        medallion.textContent = String(idx + 1);
+        medallion.title = `${formatYear(event.year)} · ${CONFIG.language === 'cn' ? event.labelCN : event.label}`;
+        medallion.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showEventDetail(event, idx + 1);
+        });
+        medallion.addEventListener('mouseenter', (e) => showEventTooltip(e, event, idx + 1));
+        medallion.addEventListener('mouseleave', hideTooltip);
+        elements.timelineGrid.appendChild(medallion);
+    });
+}
+
+function showEventTooltip(e, event, number) {
+    const tooltip = elements.tooltip;
+    tooltip.querySelector('.tooltip-title').textContent = `#${number} · ${CONFIG.language === 'cn' ? event.labelCN : event.label}`;
+    tooltip.querySelector('.tooltip-title-cn').textContent = CONFIG.language === 'cn' ? event.label : event.labelCN;
+    tooltip.querySelector('.tooltip-dates').textContent = formatYear(event.year);
+    tooltip.querySelector('.tooltip-duration').textContent = event.type ? event.type.toUpperCase() : '';
+    const meta = tooltip.querySelector('.tooltip-meta');
+    meta.textContent = event.desc ? (CONFIG.language === 'cn' ? event.desc.cn : event.desc.en) : '';
+    const rect = e.currentTarget.getBoundingClientRect();
+    tooltip.style.left = `${Math.min(window.innerWidth - 320, rect.right + 12)}px`;
+    tooltip.style.top = `${Math.max(12, rect.top - 12)}px`;
+    tooltip.classList.add('visible');
+}
+
+function renderEvents() {
+    // Region-specific events are now integrated via event medallions rendered
+    // directly into the grid by renderEventMedallions(). The legacy events
+    // overlay is left empty.
+    if (elements.eventsOverlay) elements.eventsOverlay.innerHTML = '';
 }
 
 function renderLegend() {
@@ -1762,17 +2192,35 @@ function renderLegend() {
 function handleHover(e) {
     const block = e.currentTarget;
     const tooltip = elements.tooltip;
+    const isCn = CONFIG.language === 'cn';
+
+    const start = parseInt(block.dataset.start);
+    const end = parseInt(block.dataset.end);
+    const dur = end - start;
 
     tooltip.querySelector('.tooltip-title').textContent = block.dataset.name;
     tooltip.querySelector('.tooltip-title-cn').textContent = block.dataset.nameCn;
-    tooltip.querySelector('.tooltip-dates').textContent =
-        `${formatYear(parseInt(block.dataset.start))} — ${formatYear(parseInt(block.dataset.end))}`;
-    tooltip.querySelector('.tooltip-duration').textContent =
-        `${parseInt(block.dataset.end) - parseInt(block.dataset.start)} years`;
+    tooltip.querySelector('.tooltip-dates').textContent = `${formatYear(start)} — ${formatYear(end)}`;
+    tooltip.querySelector('.tooltip-duration').textContent = `${dur} ${isCn ? '年' : 'years'}`;
+
+    // Meta: region · category · rulers
+    const regionId = block.dataset.region;
+    const region = WORLD_HISTORY[regionId];
+    const regionName = region ? (isCn ? region.nameCN : region.name) : '';
+    const category = block.dataset.category;
+    const catLabel = category && ENTITY_CATEGORIES[category]
+        ? (isCn ? ENTITY_CATEGORIES[category].labelCN : ENTITY_CATEGORIES[category].label)
+        : '';
+    const entity = findEntityById(block.dataset.id);
+    const rulers = entity && entity.rulers && entity.rulers.length ? entity.rulers.slice(0, 2).join(' · ') : '';
+    const meta = [regionName, catLabel, rulers].filter(Boolean).join(' · ');
+    tooltip.querySelector('.tooltip-meta').textContent = meta + (isCn ? ' · 点击查看详情' : ' · click for details');
 
     const rect = block.getBoundingClientRect();
-    tooltip.style.left = `${rect.right + 10}px`;
-    tooltip.style.top = `${rect.top}px`;
+    const left = Math.min(window.innerWidth - 320, rect.right + 10);
+    const top = Math.max(12, Math.min(window.innerHeight - 180, rect.top));
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
     tooltip.classList.add('visible');
 }
 
@@ -2079,66 +2527,149 @@ function getWikiUrl(entity) {
 }
 
 function showDetail(entity) {
+    const isCn = CONFIG.language === 'cn';
     const category = entity.category ? ENTITY_CATEGORIES[entity.category] : null;
     const description = HISTORICAL_DESCRIPTIONS[entity.id];
     const wikiUrl = getWikiUrl(entity);
+    const details = ENTITY_DETAILS[entity.id] || {};
+
+    // Find which region this entity belongs to
+    const regionKey = getEntityRegion(entity.id);
+    const region = regionKey ? WORLD_HISTORY[regionKey] : null;
+    const regionName = region ? (isCn ? region.nameCN : region.name) : '';
+
+    // Capital
+    const capital = details.capital || CAPITALS[entity.id];
+    const capitalName = capital ? (isCn ? (capital.cn || capital.nameCN || capital.name) : (capital.en || capital.name)) : '';
+
+    // Rulers (merge entity.rulers + details.rulers)
+    let rulersEn = entity.rulers || [];
+    let rulersCn = entity.rulersCN || details.rulersCN || [];
+    if (details.rulers && !entity.rulers) rulersEn = details.rulers;
+    const rulers = isCn && rulersCn.length ? rulersCn : rulersEn;
+
+    // Achievements
+    const achievements = details.achievements;
+    const achievementsList = achievements ? (isCn ? achievements.cn : achievements.en) : [];
+
+    // Contemporary civilizations: overlapping in time, from visible regions
+    const contemporaries = [];
+    for (const rKey of Object.keys(WORLD_HISTORY)) {
+        if (rKey === regionKey) continue;
+        for (const e of WORLD_HISTORY[rKey].entities) {
+            if (e.start < entity.end && e.end > entity.start && ['empire','caliphate','kingdom'].includes(e.category)) {
+                // overlap score: length of overlap
+                const overlap = Math.min(entity.end, e.end) - Math.max(entity.start, e.start);
+                contemporaries.push({ entity: e, region: rKey, overlap });
+            }
+        }
+    }
+    contemporaries.sort((a,b) => b.overlap - a.overlap);
+    const topContemps = contemporaries.slice(0, 6);
+
+    // Connections
+    const relatedConnections = CONNECTIONS.filter(c => c.from === entity.id || c.to === entity.id);
+
+    const duration = entity.end - entity.start;
 
     let html = `
-        <h2>${entity.name}</h2>
+        <div class="panel-hero">
+            <div>
+                <div class="panel-region">${regionName}${category ? ' · ' + (isCn ? category.labelCN : category.label) : ''}</div>
+                <div class="panel-hero-title">${formatYear(entity.start)} — ${formatYear(entity.end)} · ${duration} ${isCn ? '年' : 'years'}</div>
+            </div>
+        </div>
+        <h2 id="panelTitle">${entity.name}</h2>
         <h3>${entity.nameCN || ''}</h3>
-        ${category ? `<p class="entity-category"><span class="category-badge" style="background: ${category.color}">${CONFIG.language === 'cn' ? category.labelCN : category.label}</span></p>` : ''}
-        <p><strong>${CONFIG.language === 'cn' ? '时期' : 'Period'}:</strong> ${formatYear(entity.start)} — ${formatYear(entity.end)}</p>
-        <p><strong>${CONFIG.language === 'cn' ? '持续' : 'Duration'}:</strong> ${entity.end - entity.start} ${CONFIG.language === 'cn' ? '年' : 'years'}</p>
+        ${category ? `<span class="category-badge" style="background: ${category.color}">${isCn ? category.labelCN : category.label}</span>` : ''}
+
+        <div class="fact-grid">
+            <div class="fact"><span class="fact-label">${isCn ? '时期' : 'Period'}</span><span class="fact-value">${formatYear(entity.start)} → ${formatYear(entity.end)}</span></div>
+            <div class="fact"><span class="fact-label">${isCn ? '存续' : 'Duration'}</span><span class="fact-value">${duration} ${isCn ? '年' : 'yr'}</span></div>
+            ${capitalName ? `<div class="fact"><span class="fact-label">${isCn ? '首都' : 'Capital'}</span><span class="fact-value">${capitalName}</span></div>` : ''}
+            <div class="fact"><span class="fact-label">${isCn ? '地域' : 'Region'}</span><span class="fact-value">${regionName}</span></div>
+        </div>
     `;
 
-    // Add historical background description
     if (description) {
         html += `
-            <div class="description-section">
-                <h4>${CONFIG.language === 'cn' ? '历史背景' : 'Historical Background'}</h4>
-                <p class="entity-description">${CONFIG.language === 'cn' ? description.cn : description.en}</p>
-            </div>
+            <h4>${isCn ? '历史背景' : 'Background'}</h4>
+            <p class="entity-description">${isCn ? description.cn : description.en}</p>
         `;
     }
 
-    // Add notable rulers if available
-    if (entity.rulers && entity.rulers.length > 0) {
+    if (rulers && rulers.length) {
         html += `
-            <div class="rulers-section">
-                <h4>${CONFIG.language === 'cn' ? '著名统治者' : 'Notable Rulers'}</h4>
-                <ul class="rulers-list">
-                    ${entity.rulers.map(r => `<li>${r}</li>`).join('')}
-                </ul>
-            </div>
+            <h4>${isCn ? '著名统治者' : 'Notable Rulers'}</h4>
+            <ul class="rulers-list">
+                ${rulers.map(r => `<li>${r}</li>`).join('')}
+            </ul>
         `;
     }
 
-    // Find connections involving this entity
-    const relatedConnections = CONNECTIONS.filter(c => c.from === entity.id || c.to === entity.id);
-    if (relatedConnections.length > 0) {
+    if (achievementsList.length) {
         html += `
-            <div class="connections-section">
-                <h4>${CONFIG.language === 'cn' ? '历史联系' : 'Historical Connections'}</h4>
-                <ul class="connections-list">
-                    ${relatedConnections.map(c => {
-                        const typeLabel = c.type === 'trade' ? 'Trade: ' : c.type === 'conflict' ? 'Conflict: ' : c.type === 'conquest' ? 'Conquest: ' : '';
-                        return `<li><span class="connection-type">${typeLabel}</span>${CONFIG.language === 'cn' ? c.labelCN : c.label} (${formatYear(c.year)})</li>`;
-                    }).join('')}
-                </ul>
-            </div>
+            <h4>${isCn ? '主要成就' : 'Key Achievements'}</h4>
+            <ul class="achievements-list">
+                ${achievementsList.map(a => `<li>${a}</li>`).join('')}
+            </ul>
         `;
     }
 
-    // Add Wikipedia link
+    if (relatedConnections.length) {
+        html += `
+            <h4>${isCn ? '历史联系' : 'Historical Connections'}</h4>
+            <ul class="connections-list">
+                ${relatedConnections.map(c => {
+                    const label = isCn ? c.labelCN : c.label;
+                    const other = c.from === entity.id ? c.to : c.from;
+                    const otherEntity = findEntityById(other);
+                    const otherName = otherEntity ? (isCn ? (otherEntity.nameCN || otherEntity.name) : otherEntity.name) : other;
+                    return `<li><span class="connection-type ${c.type}">${c.type}</span>${label} ${isCn ? '·' : '·'} ${otherName} (${formatYear(c.year)})</li>`;
+                }).join('')}
+            </ul>
+        `;
+    }
+
+    if (topContemps.length) {
+        html += `
+            <h4>${isCn ? '同时代' : 'Contemporaries'}</h4>
+            <ul class="contemporaries-list">
+                ${topContemps.map(c => {
+                    const name = isCn ? (c.entity.nameCN || c.entity.name) : c.entity.name;
+                    const rName = isCn ? (WORLD_HISTORY[c.region].nameCN) : WORLD_HISTORY[c.region].name;
+                    return `<li><a href="#" data-jump-id="${c.entity.id}">${name}</a> — ${rName} (${formatYear(c.entity.start)}–${formatYear(c.entity.end)})</li>`;
+                }).join('')}
+            </ul>
+        `;
+    }
+
     html += `
         <div class="wiki-section">
             <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="wiki-link">
-                ${CONFIG.language === 'cn' ? '在维基百科上了解更多' : 'Read more on Wikipedia'}
+                ${isCn ? '在维基百科阅读' : 'Read on Wikipedia'}
             </a>
         </div>
     `;
 
     elements.panelContent.innerHTML = html;
+
+    // Wire up jump-to links on contemporaries
+    elements.panelContent.querySelectorAll('[data-jump-id]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = a.dataset.jumpId;
+            const target = findEntityById(id);
+            if (target) {
+                hidePanel();
+                setTimeout(() => {
+                    scrollToYear((target.start + target.end) / 2, true);
+                    setTimeout(() => showDetail(target), 600);
+                }, 250);
+            }
+        });
+    });
+
     showPanel();
 }
 
@@ -2174,10 +2705,14 @@ function toggleRegion(regionId, show) {
 
 function switchLanguage(lang) {
     CONFIG.language = lang;
+    document.body.classList.toggle('lang-cn', lang === 'cn');
     elements.langButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
     renderTimeline();
     renderEvents();
     renderLegend();
+    renderGlobalEvents();
+    renderConnectionLines();
+    updateStatsChip();
 }
 
 // ============================================
@@ -2197,7 +2732,7 @@ function setZoom(newYearHeight) {
     CONFIG.yearHeight = newYearHeight;
 
     if (elements.zoomSlider) elements.zoomSlider.value = newYearHeight;
-    if (elements.zoomValue) elements.zoomValue.textContent = `${newYearHeight} px/yr`;
+    if (elements.zoomValue) elements.zoomValue.textContent = `${newYearHeight.toFixed(2)} px/yr`;
 
     renderYearScale();
     renderTimeline();
@@ -2224,68 +2759,106 @@ function handleZoomSlider(e) { setZoom(parseFloat(e.target.value)); }
 // ============================================
 
 function renderConnections() {
-    // Remove existing connections
+    // Remove existing
     document.querySelectorAll('.connection-line').forEach(el => el.remove());
+    if (!CONFIG.showConnections) return;
 
-    CONNECTIONS.forEach(conn => {
+    // One shared SVG for all connections
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('connection-line');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.style.cssText = `
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        pointer-events: none;
+        z-index: 35;
+        overflow: visible;
+    `;
+
+    const colors = {
+        trade:      { stroke: '#6E833A', dash: '4,3', icon: '' },
+        conflict:   { stroke: '#B8361F', dash: 'none', icon: '' },
+        conquest:   { stroke: '#5A1108', dash: 'none', icon: '' },
+        succession: { stroke: '#1F4D7A', dash: 'none', icon: '' },
+        cultural:   { stroke: '#5C544A', dash: '6,2,2,2', icon: '' }
+    };
+
+    CONNECTIONS.forEach((conn, idx) => {
         const fromPos = entityPositions[conn.from];
         const toPos = entityPositions[conn.to];
+        if (!fromPos || !toPos) return;
 
-        if (!fromPos || !toPos) return; // Entities not visible
+        const y = yearToY(conn.year) + 35;
+        const x1 = fromPos.centerX;
+        const x2 = toPos.centerX;
+        const midX = (x1 + x2) / 2;
 
-        // Create SVG line
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('connection-line');
-        svg.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 50;
-            overflow: visible;
-        `;
+        // Curvature — arcs scale with horizontal distance
+        const distance = Math.abs(x2 - x1);
+        const arcHeight = Math.min(40 + distance * 0.10, 80);
 
-        const connectionY = yearToY(conn.year) + 35;
+        const style = colors[conn.type] || colors.cultural;
 
-        // Draw bezier curve
+        // Small square markers at ends
+        const dot1 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        dot1.setAttribute('x', x1 - 2);
+        dot1.setAttribute('y', y - 2);
+        dot1.setAttribute('width', '4');
+        dot1.setAttribute('height', '4');
+        dot1.setAttribute('fill', style.stroke);
+        svg.appendChild(dot1);
+
+        const dot2 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        dot2.setAttribute('x', x2 - 2);
+        dot2.setAttribute('y', y - 2);
+        dot2.setAttribute('width', '4');
+        dot2.setAttribute('height', '4');
+        dot2.setAttribute('fill', style.stroke);
+        svg.appendChild(dot2);
+
+        // Arced path
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const startX = fromPos.centerX;
-        const endX = toPos.centerX;
-        const midX = (startX + endX) / 2;
-
-        // Create a curved path
-        const d = `M ${startX} ${connectionY} Q ${midX} ${connectionY - 30} ${endX} ${connectionY}`;
-
-        const colors = {
-            trade: '#228B22',
-            conflict: '#DC143C',
-            conquest: '#8B0000',
-            succession: '#4169E1'
-        };
-
+        const d = `M ${x1} ${y} Q ${midX} ${y - arcHeight} ${x2} ${y}`;
         path.setAttribute('d', d);
-        path.setAttribute('stroke', colors[conn.type] || '#708090');
-        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke', style.stroke);
+        path.setAttribute('stroke-width', '1');
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke-dasharray', conn.type === 'trade' ? '5,5' : 'none');
-        path.setAttribute('opacity', '0.6');
-
+        path.setAttribute('opacity', '0.65');
+        if (style.dash !== 'none') path.setAttribute('stroke-dasharray', style.dash);
+        path.style.pointerEvents = 'stroke';
+        path.style.cursor = 'pointer';
+        path.addEventListener('mouseenter', (e) => showConnectionTooltip(e, conn));
+        path.addEventListener('mouseleave', hideTooltip);
         svg.appendChild(path);
 
-        // Add label
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', midX);
-        text.setAttribute('y', connectionY - 35);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('font-size', '9');
-        text.setAttribute('fill', colors[conn.type] || '#708090');
-        text.textContent = CONFIG.language === 'cn' ? conn.labelCN : conn.label;
-        svg.appendChild(text);
-
-        elements.timelineGrid.appendChild(svg);
+        // Label — only render when sufficiently zoomed in
+        if (CONFIG.yearHeight > 1.0) {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const labelText = CONFIG.language === 'cn' ? conn.labelCN : conn.label;
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', midX);
+            text.setAttribute('y', y - arcHeight - 4);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '9.5');
+            text.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+            text.setAttribute('font-style', 'normal');
+            text.setAttribute('font-weight', '500');
+            text.setAttribute('fill', style.stroke);
+            text.setAttribute('opacity', '0.95');
+            text.textContent = labelText;
+            // White halo
+            const halo = text.cloneNode(true);
+            halo.setAttribute('stroke', '#FFFFFF');
+            halo.setAttribute('stroke-width', '3');
+            halo.setAttribute('opacity', '0.9');
+            g.appendChild(halo);
+            g.appendChild(text);
+            svg.appendChild(g);
+        }
     });
+
+    elements.timelineGrid.appendChild(svg);
 }
 
 // ============================================
@@ -2315,94 +2888,30 @@ function clearSearch() {
 // MINIMAP
 // ============================================
 
-function updateMinimap() {
-    if (!elements.minimap) return;
+// Stats chip — live counter of visible polities
+function updateStatsChip(visibleCount, matchCount) {
+    const entitiesEl = document.getElementById('statEntities');
+    const regionsEl = document.getElementById('statRegions');
+    const spanEl = document.getElementById('statSpan');
+    if (!entitiesEl) return;
 
-    const container = elements.timelineContainer;
-    if (!container) return;
-
-    const totalHeight = yearToY(CONFIG.timelineEnd);
-    const viewportHeight = container.clientHeight;
-    const scrollTop = container.scrollTop;
-
-    // Calculate minimap dimensions
-    const minimapHeight = elements.minimap.clientHeight || 200;
-    const scale = minimapHeight / totalHeight;
-
-    // Update viewport indicator
-    if (elements.minimapViewport) {
-        const vpHeight = Math.max(viewportHeight * scale, 10);
-        const vpTop = scrollTop * scale;
-
-        elements.minimapViewport.style.cssText = `
-            position: absolute;
-            top: ${vpTop}px;
-            left: 0;
-            right: 0;
-            height: ${vpHeight}px;
-            background: rgba(201, 162, 39, 0.3);
-            border: 1px solid var(--gold-leaf);
-            pointer-events: none;
-            transition: top 0.1s;
-        `;
-    }
-
-    // Render mini blocks
-    elements.minimap.querySelectorAll('.minimap-block').forEach(el => el.remove());
-
-    const visibleRegions = getVisibleRegions();
-    let slotOffset = 0;
-    let totalSlots = 0;
-
-    visibleRegions.forEach(regionId => {
-        const region = WORLD_HISTORY[regionId];
-        if (region) totalSlots += region.slotEnd + 1;
+    let total = 0;
+    getVisibleRegions().forEach(rid => {
+        total += (WORLD_HISTORY[rid] ? WORLD_HISTORY[rid].entities.length : 0);
     });
+    const activeRegions = getVisibleRegions().length;
+    const categoryFiltered = CONFIG.categoryFilter ? visibleCount : total;
 
-    const minimapWidth = elements.minimap.clientWidth || 60;
-    const slotWidth = minimapWidth / (totalSlots || 1);
-
-    visibleRegions.forEach(regionId => {
-        const region = WORLD_HISTORY[regionId];
-        if (!region) return;
-
-        region.entities.forEach(entity => {
-            const block = document.createElement('div');
-            block.className = 'minimap-block';
-
-            const top = (yearToY(entity.start) + 35) * scale;
-            const height = Math.max((yearToY(entity.end) - yearToY(entity.start)) * scale, 1);
-            const left = (slotOffset + entity.slot) * slotWidth;
-            const width = Math.max(entity.width * slotWidth, 1);
-
-            block.style.cssText = `
-                position: absolute;
-                top: ${top}px;
-                left: ${left}px;
-                width: ${width}px;
-                height: ${height}px;
-                background: ${entity.color};
-                opacity: 0.7;
-            `;
-
-            elements.minimap.appendChild(block);
-        });
-
-        slotOffset += region.slotEnd + 1;
-    });
+    entitiesEl.textContent = CONFIG.searchQuery && matchCount !== undefined
+        ? `${matchCount} / ${categoryFiltered}`
+        : `${categoryFiltered}`;
+    regionsEl.textContent = `${activeRegions}`;
+    spanEl.textContent = `${CONFIG.timelineEnd - CONFIG.timelineStart}`;
 }
 
-function handleMinimapClick(e) {
-    if (!elements.minimap || !elements.timelineContainer) return;
-
-    const rect = elements.minimap.getBoundingClientRect();
-    const clickY = e.clientY - rect.top;
-    const minimapHeight = elements.minimap.clientHeight;
-    const totalHeight = yearToY(CONFIG.timelineEnd);
-
-    const scrollTo = (clickY / minimapHeight) * totalHeight;
-    elements.timelineContainer.scrollTop = scrollTo - elements.timelineContainer.clientHeight / 2;
-}
+// Legacy no-op stubs (minimap removed — replaced by stats chip)
+function updateMinimap() { /* stats chip handled separately */ }
+function handleMinimapClick() { /* removed */ }
 
 // ============================================
 // URL STATE MANAGEMENT
@@ -2696,59 +3205,10 @@ function jumpToYear(year) {
 // ============================================
 
 function renderConnectionLines() {
-    if (!elements.connectionsSvg || !CONFIG.showConnections) {
-        if (elements.connectionsSvg) elements.connectionsSvg.innerHTML = '';
-        return;
-    }
-
-    const svg = elements.connectionsSvg;
-    svg.innerHTML = '';
-
-    // Set SVG size
-    const totalHeight = (CONFIG.timelineEnd - CONFIG.timelineStart) * CONFIG.yearHeight;
-    svg.setAttribute('height', totalHeight);
-
-    CONNECTIONS.forEach(conn => {
-        // Find entities
-        const fromEntity = findEntityById(conn.from);
-        const toEntity = findEntityById(conn.to);
-
-        if (!fromEntity || !toEntity) return;
-
-        // Check if regions are visible
-        const fromRegion = getEntityRegion(conn.from);
-        const toRegion = getEntityRegion(conn.to);
-        if (!CONFIG.visibleRegions[fromRegion] || !CONFIG.visibleRegions[toRegion]) return;
-
-        // Get positions
-        const fromPos = entityPositions[conn.from];
-        const toPos = entityPositions[conn.to];
-        if (!fromPos || !toPos) return;
-
-        const y = yearToY(conn.year);
-
-        // Create curved path
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const fromX = fromPos.centerX || (fromPos.left + fromPos.width / 2);
-        const toX = toPos.centerX || (toPos.left + toPos.width / 2);
-        const midX = (fromX + toX) / 2;
-
-        const d = `M ${fromX} ${y}
-                   Q ${midX} ${y - 30} ${toX} ${y}`;
-
-        path.setAttribute('d', d);
-        path.setAttribute('class', `connection-line ${conn.type}`);
-        path.setAttribute('data-label', CONFIG.language === 'cn' ? conn.labelCN : conn.label);
-
-        // Add tooltip on hover
-        path.style.pointerEvents = 'stroke';
-        path.addEventListener('mouseenter', (e) => {
-            showConnectionTooltip(e, conn);
-        });
-        path.addEventListener('mouseleave', hideTooltip);
-
-        svg.appendChild(path);
-    });
+    // Remove old inline SVGs from grid (renderConnections also runs)
+    document.querySelectorAll('.connection-line').forEach(el => el.remove());
+    if (!CONFIG.showConnections) return;
+    renderConnections();
 }
 
 function findEntityById(id) {
@@ -2786,33 +3246,111 @@ function showConnectionTooltip(e, conn) {
 
 function renderGlobalEvents() {
     if (!elements.globalEventsTrack) return;
-
     elements.globalEventsTrack.innerHTML = '';
 
     HISTORICAL_EVENTS.forEach((event, index) => {
+        if (event.year < CONFIG.timelineStart || event.year > CONFIG.timelineEnd) return;
         const marker = document.createElement('div');
         marker.className = `global-event-marker ${event.type}`;
-        marker.style.top = `${yearToY(event.year)}px`;
-        marker.title = `${formatYear(event.year)}: ${CONFIG.language === 'cn' ? event.labelCN : event.label}`;
-        marker.style.animationDelay = `${index * 0.02}s`;
+        marker.style.top = `${yearToY(event.year) + 35}px`;
+        marker.textContent = String(index + 1);
+        marker.title = `#${index+1} · ${formatYear(event.year)}: ${CONFIG.language === 'cn' ? event.labelCN : event.label}`;
+        marker.style.animationDelay = `${index * 0.015}s`;
 
-        marker.addEventListener('click', () => {
-            showEventDetail(event);
+        marker.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showEventDetail(event, index + 1);
         });
+        marker.addEventListener('mouseenter', (e) => showEventTooltip(e, event, index + 1));
+        marker.addEventListener('mouseleave', hideTooltip);
 
         elements.globalEventsTrack.appendChild(marker);
     });
 }
 
-function showEventDetail(event) {
-    const html = `
-        <h2>${event.label}</h2>
-        <h3>${event.labelCN}</h3>
-        <p><strong>${CONFIG.language === 'cn' ? '年份' : 'Year'}:</strong> ${formatYear(event.year)}</p>
-        <p><strong>${CONFIG.language === 'cn' ? '类型' : 'Type'}:</strong> ${event.type}</p>
-        <p><strong>${CONFIG.language === 'cn' ? '地区' : 'Region'}:</strong> ${event.region}</p>
+function showEventDetail(event, number) {
+    const isCn = CONFIG.language === 'cn';
+    const typeLabel = {
+        invention: isCn ? '发明与发现' : 'Invention',
+        construction: isCn ? '建造' : 'Construction',
+        cultural: isCn ? '文化与宗教' : 'Cultural',
+        political: isCn ? '政治' : 'Political',
+        conflict: isCn ? '冲突' : 'Conflict',
+        conquest: isCn ? '征服' : 'Conquest',
+        exploration: isCn ? '探索' : 'Exploration',
+        disaster: isCn ? '灾难' : 'Disaster',
+        trade: isCn ? '贸易' : 'Trade'
+    }[event.type] || event.type;
+
+    const regionName = event.region && WORLD_HISTORY[event.region]
+        ? (isCn ? WORLD_HISTORY[event.region].nameCN : WORLD_HISTORY[event.region].name)
+        : '';
+
+    // Find entities active at this year
+    const active = [];
+    Object.entries(WORLD_HISTORY).forEach(([regionKey, region]) => {
+        region.entities.forEach(e => {
+            if (e.start <= event.year && e.end >= event.year && ['empire','caliphate','kingdom','republic'].includes(e.category)) {
+                active.push({ entity: e, region: regionKey });
+            }
+        });
+    });
+    const majorPowers = active.slice(0, 8);
+
+    let html = `
+        <div class="panel-hero">
+            <div>
+                <div class="panel-region">${isCn ? '世界大事' : 'World Event'} · ${typeLabel}</div>
+                <div class="panel-hero-title">${number ? '№ ' + number + ' · ' : ''}${formatYear(event.year)}</div>
+            </div>
+        </div>
+        <h2 id="panelTitle">${isCn ? event.labelCN : event.label}</h2>
+        <h3>${isCn ? event.label : event.labelCN}</h3>
+
+        <div class="fact-grid">
+            <div class="fact"><span class="fact-label">${isCn ? '年份' : 'Year'}</span><span class="fact-value">${formatYear(event.year)}</span></div>
+            <div class="fact"><span class="fact-label">${isCn ? '类型' : 'Type'}</span><span class="fact-value">${typeLabel}</span></div>
+            ${regionName ? `<div class="fact"><span class="fact-label">${isCn ? '地域' : 'Region'}</span><span class="fact-value">${regionName}</span></div>` : ''}
+        </div>
     `;
+
+    if (event.desc) {
+        html += `
+            <h4>${isCn ? '事件背景' : 'Context'}</h4>
+            <p class="entity-description">${isCn ? event.desc.cn : event.desc.en}</p>
+        `;
+    }
+
+    if (majorPowers.length) {
+        html += `
+            <h4>${isCn ? '同期强权' : 'Powers at this Moment'}</h4>
+            <ul class="contemporaries-list">
+                ${majorPowers.map(p => {
+                    const name = isCn ? (p.entity.nameCN || p.entity.name) : p.entity.name;
+                    const rName = isCn ? WORLD_HISTORY[p.region].nameCN : WORLD_HISTORY[p.region].name;
+                    return `<li><a href="#" data-jump-id="${p.entity.id}">${name}</a> — ${rName}</li>`;
+                }).join('')}
+            </ul>
+        `;
+    }
+
     elements.panelContent.innerHTML = html;
+
+    elements.panelContent.querySelectorAll('[data-jump-id]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = a.dataset.jumpId;
+            const target = findEntityById(id);
+            if (target) {
+                hidePanel();
+                setTimeout(() => {
+                    scrollToYear((target.start + target.end) / 2, true);
+                    setTimeout(() => showDetail(target), 600);
+                }, 250);
+            }
+        });
+    });
+
     showPanel();
 }
 
@@ -2859,23 +3397,48 @@ function setupJumpToYear() {
 
 function scrollToYear(year, smooth = true) {
     const container = elements.timelineContainer;
-    if (!container) {
-        console.warn('Timeline container not found');
-        return;
-    }
+    if (!container) return;
 
-    const y = yearToY(year);
+    const y = yearToY(year) + 35;
     const containerRect = container.getBoundingClientRect();
     const containerTop = containerRect.top + window.scrollY;
     const viewportHeight = window.innerHeight;
-    const scrollTarget = Math.max(0, containerTop + y - viewportHeight / 2);
-
-    console.log(`Scrolling to year ${year}: y=${y}, scrollTarget=${scrollTarget}`);
+    // Header is sticky at top, account for its height (~108px)
+    const headerOffset = 120;
+    const scrollTarget = Math.max(0, containerTop + y - (viewportHeight / 2) - headerOffset);
 
     window.scrollTo({
         top: scrollTarget,
         behavior: smooth ? 'smooth' : 'instant'
     });
+
+    // Also flash a highlight at that year
+    flashYearBeacon(year);
+}
+
+function flashYearBeacon(year) {
+    const beacon = document.createElement('div');
+    beacon.style.cssText = `
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: ${yearToY(year) + 35}px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--vermilion), transparent);
+        box-shadow: 0 0 12px var(--vermilion);
+        pointer-events: none;
+        z-index: 300;
+        animation: beacon-flash 1.6s ease-out forwards;
+    `;
+    elements.timelineGrid.appendChild(beacon);
+    setTimeout(() => beacon.remove(), 1700);
+}
+// Inject beacon animation if not in CSS
+if (!document.getElementById('beacon-style')) {
+    const s = document.createElement('style');
+    s.id = 'beacon-style';
+    s.textContent = `@keyframes beacon-flash { 0% { opacity: 0; transform: scaleY(1); } 15% { opacity: 1; transform: scaleY(4); } 100% { opacity: 0; transform: scaleY(1); } }`;
+    document.head.appendChild(s);
 }
 
 // ============================================
@@ -2936,9 +3499,25 @@ function setupCompareMode() {
     if (!elements.compareBtn || !elements.comparePanel) return;
 
     let selectedRegions = [];
+    let compareModeActive = false;
 
     elements.compareBtn.addEventListener('click', () => {
-        // Populate options
+        if (compareModeActive) {
+            // Turn compare mode off
+            compareModeActive = false;
+            elements.compareBtn.classList.remove('active');
+            // Restore all regions
+            Object.keys(CONFIG.visibleRegions).forEach(region => {
+                CONFIG.visibleRegions[region] = true;
+            });
+            elements.regionCheckboxes.forEach(cb => { cb.checked = true; });
+            renderTimeline();
+            renderLegend();
+            renderConnectionLines();
+            showToast(CONFIG.language === 'cn' ? '已退出对比模式' : 'Compare mode off');
+            return;
+        }
+        // Open compare panel
         elements.compareOptions.innerHTML = '';
         selectedRegions = [];
 
@@ -2970,26 +3549,112 @@ function setupCompareMode() {
 
     elements.compareApply?.addEventListener('click', () => {
         if (selectedRegions.length !== 2) {
-            showToast('Please select exactly 2 regions');
+            showToast(CONFIG.language === 'cn' ? '请选择两个地区' : 'Please select 2 regions');
             return;
         }
 
-        // Hide all regions except selected
+        compareModeActive = true;
+        elements.compareBtn.classList.add('active');
+
+        // Show only selected regions
         Object.keys(CONFIG.visibleRegions).forEach(region => {
             CONFIG.visibleRegions[region] = selectedRegions.includes(region);
         });
-
-        // Update checkboxes
-        elements.regionCheckboxes.forEach(checkbox => {
-            checkbox.checked = CONFIG.visibleRegions[checkbox.dataset.region];
+        elements.regionCheckboxes.forEach(cb => {
+            cb.checked = CONFIG.visibleRegions[cb.dataset.region];
         });
 
         renderTimeline();
-        renderEvents();
         renderLegend();
         renderConnectionLines();
         elements.comparePanel.classList.remove('visible');
-        showToast(`Comparing ${selectedRegions.join(' & ')}`);
+
+        const names = selectedRegions.map(k => CONFIG.language === 'cn' ? WORLD_HISTORY[k].nameCN : WORLD_HISTORY[k].name).join(' ↔ ');
+        showToast(`${CONFIG.language === 'cn' ? '对比' : 'Comparing'}: ${names}`);
+    });
+}
+
+// ============================================
+// CATEGORY FILTER
+// ============================================
+function setupCategoryFilter() {
+    const chips = document.querySelectorAll('#categoryFilter .cat-chip');
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const cat = chip.dataset.category || null;
+            CONFIG.categoryFilter = cat;
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            renderTimeline();
+            renderLegend();
+            renderConnectionLines();
+            updateURLState();
+            if (cat) {
+                showToast(`${CONFIG.language === 'cn' ? '筛选' : 'Filter'}: ${ENTITY_CATEGORIES[cat] ? (CONFIG.language === 'cn' ? ENTITY_CATEGORIES[cat].labelCN : ENTITY_CATEGORIES[cat].label) : cat}`);
+            } else {
+                showToast(CONFIG.language === 'cn' ? '清除筛选' : 'Filter cleared');
+            }
+        });
+    });
+    // Default to "All"
+    const allChip = document.querySelector('#categoryFilter .cat-chip[data-category=""]');
+    allChip?.classList.add('active');
+}
+
+// ============================================
+// HELP DIALOG
+// ============================================
+function setupHelpDialog() {
+    const helpBtn = document.getElementById('helpBtn');
+    if (!helpBtn) return;
+    helpBtn.addEventListener('click', () => {
+        const isCn = CONFIG.language === 'cn';
+        const html = `
+            <div class="panel-hero">
+                <div>
+                    <div class="panel-region">${isCn ? '导览' : 'Navigation Guide'}</div>
+                    <div class="panel-hero-title">${isCn ? '编年史使用指南' : 'Using the Chronicle'}</div>
+                </div>
+            </div>
+            <h2>${isCn ? '键盘快捷键' : 'Keyboard Shortcuts'}</h2>
+            <h3>${isCn ? '掌控时间之流' : 'Navigate the flow of time'}</h3>
+            <h4>${isCn ? '移动' : 'Movement'}</h4>
+            <ul>
+                <li><strong>↑ ↓</strong> — ${isCn ? '滚动' : 'Scroll'}</li>
+                <li><strong>Page Up / Down</strong> — ${isCn ? '整页翻动' : 'Full page'}</li>
+                <li><strong>Home / End</strong> — ${isCn ? '跳转到起点/终点' : 'Jump to start / end'}</li>
+                <li><strong>/</strong> — ${isCn ? '聚焦搜索' : 'Focus search'}</li>
+            </ul>
+            <h4>${isCn ? '缩放' : 'Zoom'}</h4>
+            <ul>
+                <li><strong>Ctrl/Cmd +</strong> — ${isCn ? '放大' : 'Zoom in'}</li>
+                <li><strong>Ctrl/Cmd −</strong> — ${isCn ? '缩小' : 'Zoom out'}</li>
+                <li><strong>Ctrl/Cmd 0</strong> — ${isCn ? '重置' : 'Reset'}</li>
+                <li>${isCn ? '双击时间轴以放大到该年份' : 'Double-click the timeline to zoom in'}</li>
+            </ul>
+            <h4>${isCn ? '面板与模式' : 'Panels & Modes'}</h4>
+            <ul>
+                <li><strong>Esc</strong> — ${isCn ? '关闭面板 / 退出全屏模式' : 'Close panels / exit full-page mode'}</li>
+                <li>${isCn ? '点击任意王朝查看详细信息' : 'Click any polity for a museum-style placard'}</li>
+                <li>${isCn ? '点击金色圆圈查看世界大事' : 'Click any gold medallion for world events'}</li>
+                <li>${isCn ? '悬停一个王朝高亮其同时代者' : 'Hover a polity to see its contemporaries'}</li>
+            </ul>
+            <h4>${isCn ? '工具' : 'Tools'}</h4>
+            <ul>
+                <li><strong>Compare</strong> — ${isCn ? '对比两个地区' : 'Compare two regions side by side'}</li>
+                <li><strong>Export</strong> — ${isCn ? '导出为 PNG 图片' : 'Save as PNG image'}</li>
+                <li><strong>Share</strong> — ${isCn ? '复制带当前状态的链接' : 'Copy link preserving current view'}</li>
+                <li><strong>Dark</strong> — ${isCn ? '切换深色模式' : 'Toggle dark mode'}</li>
+                <li><strong>Full</strong> — ${isCn ? '进入无干扰阅读' : 'Enter distraction-free mode'}</li>
+            </ul>
+            <h4>${isCn ? '数据规模' : 'Dataset'}</h4>
+            <ul>
+                <li>${isCn ? '约 530 个政体、80 个世界大事、50 条历史联系' : '~530 polities · ~80 world events · ~50 connections'}</li>
+                <li>${isCn ? '8 个区域 · 公元前 3000 年至 公元 2000 年' : '8 regions · 3000 BC to AD 2000'}</li>
+            </ul>
+        `;
+        elements.panelContent.innerHTML = html;
+        showPanel();
     });
 }
 
@@ -3056,29 +3721,34 @@ function setupExport() {
     if (!elements.exportBtn) return;
 
     elements.exportBtn.addEventListener('click', async () => {
-        showToast('Preparing export...');
+        const isCn = CONFIG.language === 'cn';
+        showToast(isCn ? '导出准备中…' : 'Preparing export…');
 
         try {
-            // Use html2canvas if available, otherwise simple screenshot
             if (typeof html2canvas !== 'undefined') {
-                const canvas = await html2canvas(elements.timelineGrid, {
-                    backgroundColor: '#F5E6C8',
-                    scale: 2
+                // Export the timeline-wrapper (entire grid + year scale)
+                const target = elements.timelineContainer;
+                const canvas = await html2canvas(target, {
+                    backgroundColor: document.body.classList.contains('dark-mode') ? '#1F190F' : '#F1DFB4',
+                    scale: Math.min(2, window.devicePixelRatio || 1),
+                    windowWidth: target.scrollWidth,
+                    windowHeight: target.scrollHeight,
+                    logging: false,
+                    useCORS: true
                 });
 
                 const link = document.createElement('a');
-                link.download = `world-history-timeline-${Date.now()}.png`;
+                link.download = `illuminated-chronicle-${new Date().toISOString().slice(0,10)}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                showToast('Timeline exported!');
+                showToast(isCn ? '导出成功！' : 'Saved as PNG');
             } else {
-                // Fallback - print dialog
                 window.print();
-                showToast('Use Print dialog to save as PDF');
+                showToast(isCn ? '使用打印对话框另存为 PDF' : 'Use Print dialog to save as PDF');
             }
         } catch (err) {
-            showToast('Export failed - try Print (Ctrl+P)');
             console.error('Export error:', err);
+            showToast(isCn ? '导出失败 — 请改用打印 (Ctrl+P)' : 'Export failed — try Print (Ctrl+P)');
         }
     });
 }
@@ -3210,8 +3880,16 @@ function setupDoubleClickZoom() {
 function init() {
     initElements();
 
+    // One-time data normalization: trim same-slot polities that overlap in time
+    // (e.g. Babylon IV-V truncated when Assyrian Empire takes over Mesopotamia).
+    const trims = normalizeOverlaps();
+    if (trims > 0) console.log(`Normalized ${trims} overlapping polities`);
+
     // Load URL state first
     loadURLState();
+
+    // Apply language class to body
+    document.body.classList.toggle('lang-cn', CONFIG.language === 'cn');
 
     if (elements.zoomSlider) {
         elements.zoomSlider.min = MIN_YEAR_HEIGHT;
@@ -3219,7 +3897,7 @@ function init() {
         elements.zoomSlider.value = CONFIG.yearHeight;
     }
     if (elements.zoomValue) {
-        elements.zoomValue.textContent = `${CONFIG.yearHeight} px/yr`;
+        elements.zoomValue.textContent = `${CONFIG.yearHeight.toFixed(2)} px/yr`;
     }
 
     // Update UI to reflect loaded state
@@ -3345,6 +4023,8 @@ function init() {
     setupCompareMode();
     setupContemporaryHighlight();
     setupSmoothEraNavigation();
+    setupCategoryFilter();
+    setupHelpDialog();
 
     // Render connection lines and global events
     renderConnectionLines();

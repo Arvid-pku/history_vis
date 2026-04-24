@@ -1,1 +1,23 @@
 .claude/
+.playwright-mcp/
+
+# Dev-time screenshots
+before-*.png
+fresh-*.png
+new-*.png
+clamped-*.png
+flat-*.png
+final-*.png
+detail-*.png
+event-*.png
+help-*.png
+search-*.png
+filter-*.png
+compare-*.png
+cn-*.png
+dark-*.png
+zoomed-*.png
+v2-*.png
+v3-*.png
+babylon-*.png
+korea-*.png

@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World History Timeline - Dynasties & Civilizations</title>
+    <title>The Illuminated Chronicle — World History Timeline</title>
+    <meta name="description" content="An interactive, bilingual chronicle of world history from 3000 BC to AD 2000, covering eight regions and five millennia.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="print.css" media="print">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23F1DFB4'/%3E%3Cpath d='M32 10 L36 28 L54 32 L36 36 L32 54 L28 36 L10 32 L28 28 Z' fill='%23D7B84C' stroke='%237C5F13' stroke-width='1.2'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="print.css?v=16" media="print">
 </head>
 <body>
     <div class="corner-ornament top-left"></div>
@@ -16,17 +18,16 @@
     <div class="corner-ornament bottom-left"></div>
     <div class="corner-ornament bottom-right"></div>
 
-    <!-- Compact Header with Integrated Controls -->
     <header class="chronicle-header">
         <div class="header-top">
-            <h1 class="main-title">World History Timeline</h1>
+            <h1 class="main-title">The Illuminated Chronicle</h1>
             <div class="header-controls">
                 <div class="search-container" id="searchContainer">
-                    <span class="search-icon">&#128269;</span>
-                    <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
-                    <button class="search-clear" id="searchClear" style="display: none;">&times;</button>
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="searchInput" placeholder="Search dynasties, rulers…" autocomplete="off" aria-label="Search the chronicle">
+                    <button class="search-clear" id="searchClear" style="display: none;" aria-label="Clear search">&times;</button>
                 </div>
-                <div class="language-toggle">
+                <div class="language-toggle" role="group" aria-label="Language">
                     <button class="lang-btn active" data-lang="en">EN</button>
                     <button class="lang-btn" data-lang="cn">中文</button>
                 </div>
@@ -34,72 +35,80 @@
         </div>
 
         <div class="header-toolbar">
-            <!-- Regions -->
-            <div class="toolbar-group regions-group">
-                <label class="region-toggle"><input type="checkbox" data-region="eastAsia" checked><span>E.Asia</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="southeastAsia" checked><span>SE.Asia</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="europe" checked><span>Europe</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="middleEast" checked><span>M.East</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="southAsia" checked><span>S.Asia</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="centralAsia" checked><span>C.Asia</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="africa" checked><span>Africa</span></label>
-                <label class="region-toggle"><input type="checkbox" data-region="americas" checked><span>Americas</span></label>
+            <div class="toolbar-group regions-group" role="group" aria-label="Regions">
+                <label class="region-toggle" data-r="eastAsia"><input type="checkbox" data-region="eastAsia" checked><span>E. Asia</span></label>
+                <label class="region-toggle" data-r="southeastAsia"><input type="checkbox" data-region="southeastAsia" checked><span>SE. Asia</span></label>
+                <label class="region-toggle" data-r="europe"><input type="checkbox" data-region="europe" checked><span>Europe</span></label>
+                <label class="region-toggle" data-r="middleEast"><input type="checkbox" data-region="middleEast" checked><span>M. East</span></label>
+                <label class="region-toggle" data-r="southAsia"><input type="checkbox" data-region="southAsia" checked><span>S. Asia</span></label>
+                <label class="region-toggle" data-r="centralAsia"><input type="checkbox" data-region="centralAsia" checked><span>C. Asia</span></label>
+                <label class="region-toggle" data-r="africa"><input type="checkbox" data-region="africa" checked><span>Africa</span></label>
+                <label class="region-toggle" data-r="americas"><input type="checkbox" data-region="americas" checked><span>Americas</span></label>
             </div>
 
             <div class="toolbar-divider"></div>
 
-            <!-- Display Options -->
-            <div class="toolbar-group display-group">
-                <label class="toggle-label"><input type="checkbox" id="showEvents"><span>Events</span></label>
+            <div class="toolbar-group display-group" role="group" aria-label="Display layers">
+                <label class="toggle-label"><input type="checkbox" id="showEvents" checked><span>Events</span></label>
                 <label class="toggle-label"><input type="checkbox" id="showConnections" checked><span>Links</span></label>
                 <label class="toggle-label"><input type="checkbox" id="showEras" checked><span>Eras</span></label>
             </div>
 
             <div class="toolbar-divider"></div>
 
-            <!-- Zoom -->
-            <div class="toolbar-group zoom-group">
+            <div class="toolbar-group zoom-group" role="group" aria-label="Zoom">
                 <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
-                <input type="range" id="zoomSlider" min="0.1" max="15" value="0.25" step="0.1">
+                <input type="range" id="zoomSlider" min="0.1" max="15" value="0.25" step="0.05">
                 <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
-                <span class="zoom-value" id="zoomValue">0.25</span>
-                <button class="preset-btn" data-zoom="0.25">All</button>
-                <button class="preset-btn" data-zoom="1">100y</button>
-                <button class="preset-btn" data-zoom="5">10y</button>
+                <span class="zoom-value" id="zoomValue">0.25 px/yr</span>
+                <button class="preset-btn" data-zoom="0.25" title="Fit all 5000 years">All</button>
+                <button class="preset-btn" data-zoom="1" title="~1000 years on screen">1ky</button>
+                <button class="preset-btn" data-zoom="3" title="~300 years on screen">300y</button>
+                <button class="preset-btn" data-zoom="8" title="~100 years on screen">100y</button>
             </div>
 
             <div class="toolbar-divider"></div>
 
-            <!-- Era Jump -->
-            <div class="toolbar-group era-group">
-                <button class="era-btn" data-year="-3000">Bronze</button>
-                <button class="era-btn" data-year="-500">Classical</button>
-                <button class="era-btn" data-year="500">Medieval</button>
-                <button class="era-btn" data-year="1500">Modern</button>
+            <div class="toolbar-group era-group" role="group" aria-label="Jump to era">
+                <button class="era-btn" data-year="-3000" title="Bronze Age">Bronze</button>
+                <button class="era-btn" data-year="-500" title="Classical Antiquity">Classical</button>
+                <button class="era-btn" data-year="500" title="Medieval">Medieval</button>
+                <button class="era-btn" data-year="1500" title="Early Modern">Modern</button>
             </div>
 
             <div class="toolbar-divider"></div>
 
-            <!-- Jump to Year -->
             <div class="toolbar-group jump-group">
-                <input type="text" id="jumpToYear" placeholder="Year..." class="year-input">
+                <input type="text" id="jumpToYear" placeholder="e.g. 1066 AD" class="year-input" aria-label="Jump to a year">
                 <button class="jump-btn" id="jumpBtn" title="Go to Year">Go</button>
             </div>
 
             <div class="toolbar-divider"></div>
 
-            <!-- Utility Buttons -->
-            <div class="toolbar-group utility-group">
-                <button class="util-btn" id="compareBtn" title="Compare Regions">Compare</button>
-                <button class="util-btn" id="exportBtn" title="Export Image">Export</button>
-                <button class="util-btn" id="shareBtn" title="Share Link">Share</button>
-                <button class="util-btn" id="darkModeBtn" title="Toggle Dark Mode">Dark</button>
-                <button class="util-btn" id="fullPageBtn" title="Full Page Mode">Full</button>
+            <div class="toolbar-group utility-group" role="group" aria-label="Tools">
+                <button class="util-btn" id="compareBtn" title="Compare two regions">Compare</button>
+                <button class="util-btn" id="exportBtn" title="Export as PNG">Export</button>
+                <button class="util-btn" id="shareBtn" title="Copy shareable link">Share</button>
+                <button class="util-btn" id="darkModeBtn" title="Toggle dark mode">Dark</button>
+                <button class="util-btn" id="fullPageBtn" title="Distraction-free view">Full</button>
+                <button class="util-btn" id="helpBtn" title="Keyboard shortcuts">?</button>
+            </div>
+        </div>
+
+        <div class="header-toolbar" style="padding-top: 0.25rem; padding-bottom: 0.4rem;">
+            <div class="toolbar-group category-filter" id="categoryFilter" role="group" aria-label="Filter by category">
+                <span class="cat-chip" data-category=""><span class="dot" style="background: linear-gradient(45deg, #7C5F13, #D7B84C); border: 1px solid rgba(0,0,0,0.2);"></span>All</span>
+                <span class="cat-chip" data-category="empire"><span class="dot" style="background:#9B7B6B"></span>Empire</span>
+                <span class="cat-chip" data-category="kingdom"><span class="dot" style="background:#7B9EB9"></span>Kingdom</span>
+                <span class="cat-chip" data-category="republic"><span class="dot" style="background:#8BA98B"></span>Republic</span>
+                <span class="cat-chip" data-category="caliphate"><span class="dot" style="background:#8BAA8B"></span>Caliphate</span>
+                <span class="cat-chip" data-category="dynasty"><span class="dot" style="background:#C9B896"></span>Dynasty</span>
+                <span class="cat-chip" data-category="nomadic"><span class="dot" style="background:#A89080"></span>Nomadic</span>
+                <span class="cat-chip" data-category="colonial"><span class="dot" style="background:#B98B8B"></span>Colonial</span>
             </div>
         </div>
     </header>
 
-    <!-- Year Cursor Indicator -->
     <div class="year-cursor" id="yearCursor">
         <span class="cursor-year"></span>
     </div>
@@ -114,47 +123,52 @@
         </div>
     </main>
 
-    <!-- Compare Mode Panel -->
     <div class="compare-panel" id="comparePanel">
         <div class="compare-header">
-            <span>Select two regions to compare:</span>
-            <button class="compare-close" id="compareClose">&times;</button>
+            <span>Select two regions to compare</span>
+            <button class="compare-close" id="compareClose" aria-label="Close compare panel">&times;</button>
         </div>
         <div class="compare-options" id="compareOptions"></div>
         <button class="compare-apply" id="compareApply">Apply Comparison</button>
     </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <!-- Exit Full Page Button -->
     <button class="exit-full-page" id="exitFullPage">Exit Full Page (Esc)</button>
 
-    <div class="tooltip" id="tooltip">
+    <div class="tooltip" id="tooltip" role="tooltip">
         <div class="tooltip-header">
             <span class="tooltip-title"></span>
             <span class="tooltip-title-cn"></span>
         </div>
         <div class="tooltip-dates"></div>
         <div class="tooltip-duration"></div>
+        <div class="tooltip-meta"></div>
     </div>
 
-    <!-- Collapsible Legend -->
     <aside class="legend" id="legend">
-        <button class="legend-toggle" id="legendToggle" title="Toggle Legend">&#9776;</button>
+        <button class="legend-toggle" id="legendToggle" title="Toggle legend">Legend</button>
         <div class="legend-content">
             <div class="legend-items" id="legendItems"></div>
             <div class="category-legend">
-                <div class="category-item"><span class="cat-dot" style="background:#9B7B6B"></span>Empire</div>
-                <div class="category-item"><span class="cat-dot" style="background:#7B9EB9"></span>Kingdom</div>
-                <div class="category-item"><span class="cat-dot" style="background:#8BA98B"></span>Republic</div>
-                <div class="category-item"><span class="cat-dot" style="background:#C9B896"></span>Dynasty</div>
+                <div class="category-item"><span class="cat-dot" style="background:#C9A227"></span>Empire</div>
+                <div class="category-item"><span class="cat-dot" style="background:#2B4677"></span>Kingdom</div>
+                <div class="category-item"><span class="cat-dot" style="background:#B8361F"></span>Republic</div>
+                <div class="category-item"><span class="cat-dot" style="background:#4F7057"></span>Caliphate</div>
+                <div class="category-item"><span class="cat-dot" style="background:#775A33"></span>Dynasty</div>
+                <div class="category-item"><span class="cat-dot" style="background:#6C3A5E"></span>Nomadic</div>
             </div>
         </div>
     </aside>
 
-    <div class="event-panel" id="eventPanel">
-        <button class="panel-close" id="panelClose">&times;</button>
+    <div class="stats-chip" id="statsChip" aria-live="polite">
+        <div class="stat"><span class="stat-value" id="statEntities">—</span><span class="stat-label">Polities</span></div>
+        <div class="stat"><span class="stat-value" id="statRegions">8</span><span class="stat-label">Regions</span></div>
+        <div class="stat"><span class="stat-value" id="statSpan">5000</span><span class="stat-label">Years</span></div>
+    </div>
+
+    <div class="event-panel" id="eventPanel" role="dialog" aria-labelledby="panelTitle">
+        <button class="panel-close" id="panelClose" aria-label="Close panel">&times;</button>
         <div class="panel-content" id="panelContent"></div>
     </div>
 
@@ -165,10 +179,12 @@
             Finis Coronat Opus
             <span class="footer-flourish">&#10016;</span>
         </p>
-        <p class="footer-note">World History Timeline - 3000 BC to 2000 AD | 8 Regions | Interactive Visualization</p>
-        <p class="footer-disclaimer">Disclaimer: This timeline is for educational purposes only. The representation of borders, territories, and political entities reflects historical contexts and does not imply any political stance or endorsement. Some historical interpretations may vary among scholars.</p>
+        <p class="footer-note">A Chronicle of Dynasties &amp; Civilizations · 3000 BC to AD 2000 · Eight regions · Five millennia</p>
+        <p class="footer-disclaimer">This chronicle is presented for educational purposes only. Historical borders, territories, and political entities are depicted in their historical context and do not imply any present-day political stance. Scholarly interpretations differ; dates are approximate for early periods.</p>
     </footer>
 
-    <script src="app.js"></script>
+    <!-- html2canvas for PNG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="app.js?v=16" defer></script>
 </body>
 </html>

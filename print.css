@@ -17,7 +17,15 @@
 .tooltip,
 .event-panel,
 .panel-backdrop,
-.corner-ornament {
+.corner-ornament,
+.header-toolbar,
+.stats-chip,
+.exit-full-page,
+.toast,
+.year-cursor,
+.compare-panel,
+.global-events-track,
+.event-medallion {
     display: none !important;
 }
 
