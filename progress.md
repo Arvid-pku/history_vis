@@ -1,6 +1,12 @@
 # Progress
 
 ## 2026-06-13
+- Started v315 fix for the user's latest feedback: rename the Taiwan block's Chinese label and remove the misleading large blank band above 3000 BC.
+- Changed `roc_taiwan` visible Chinese name to `中国台湾` and updated the Chinese detail description's opening label.
+- Split timeline edge padding into a small top padding and larger desktop bottom padding, so the first rendered year starts near the top while late years can still be centered.
+- Updated the year cursor to reuse `yearAtViewportY()`, fixing the previous mismatch where hovering over top padding could display a much later BC year.
+- Bumped active asset references to `styles.css?v=315`, `print.css?v=315`, and `app.js?v=315`.
+- Verification passed: `node --check app.js`, `git diff --check`, active asset scan, and headless Chrome/CDP on localhost. Runtime QA loaded only v315 assets, rendered `roc_taiwan` with `data-name-cn="中国台湾"`, reported 28px top padding / 398.5px desktop bottom padding, mapped the first year line to `-3000`, and mapped the top padding area outside the valid timeline range so the cursor hides instead of showing the wrong BC year.
 - Started user-requested stepwise commit/push cleanup for the large dirty project state.
 - Confirmed branch `main` was even with `origin/main` before committing; remote is `https://github.com/Arvid-pku/history_vis.git`.
 - Static verification passed before committing: `node --check app.js` and `git diff --check`.

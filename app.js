@@ -1106,7 +1106,7 @@ const HISTORICAL_DESCRIPTIONS = {
     tungning: { en: "Tungning / Zheng Taiwan was a Ming-loyalist island regime that sustained anti-Qing resistance until the Qing invasion of 1683. It stays whole in the Taiwan island lane across the Taiwan Strait from the Fujian/south-coast campaign lane, not as a cutout inside the Beijing or mainland core.", cn: "明郑台湾是延续反清抵抗的明遗民岛屿政权，持续到1683年清军攻台。它作为台湾岛屿栏的完整主人保留，隔台湾海峡对应福建/华南沿海推进栏，而不是北京或大陆核心里的缺口。" },
     qing_taiwan: { en: "Qing Taiwan begins after the fall of Tungning in 1683 and ends with cession to Japan in 1895. It is a separate island lane from mainland Qing China, so neighboring Vietnam does not carry any Taiwan cutout.", cn: "清治台湾始于1683年明郑灭亡，止于1895年割让日本。它是独立于大陆清朝的岛屿栏，因此相邻越南不承接任何台湾缺口。" },
     japanese_taiwan: { en: "Japanese Taiwan marks colonial rule after the Treaty of Shimonoseki. It appears in Taiwan's island lane, not inside Japan proper and not as a land bite owned by French Vietnam.", cn: "日治台湾表示《马关条约》后的日本殖民统治。它位于台湾岛屿栏，不放入日本本土，也不画成由法属越南承接的土地缺口。" },
-    roc_taiwan: { en: "ROC Taiwan begins with postwar transfer from Japanese rule and becomes the Nationalist government's main base after the 1949 mainland retreat. The full island lane expresses continuity without inventing an adjacent owner.", cn: "中华民国台湾始于战后从日本统治转移，1949年大陆撤退后成为国民政府主要基地。完整岛屿栏表达这种连续性，而不虚构相邻承接者。" },
+    roc_taiwan: { en: "ROC Taiwan begins with postwar transfer from Japanese rule and becomes the Nationalist government's main base after the 1949 mainland retreat. The full island lane expresses continuity without inventing an adjacent owner.", cn: "中国台湾始于战后从日本统治转移，1949年大陆撤退后成为国民政府主要基地。完整岛屿栏表达这种连续性，而不虚构相邻承接者。" },
     jp_korea: { en: "Japanese Korea marks the 1910 annexation and colonial rule until Japan's defeat in 1945. It ends before the U.S. and Soviet occupation-zone transition.", cn: "日治朝鲜表示1910年日本吞并后至1945年日本战败前的殖民统治；它止于美苏分区占领过渡之前。" },
     korea_us_occupation: { en: "The U.S. Occupation Zone marks southern Korea under USAMGIK south of the 38th parallel after Japanese surrender and before the Republic of Korea was founded in 1948.", cn: "美军占领区表示日本投降后、1948年大韩民国建立前，三八线以南由美军政厅管理的南部朝鲜。" },
     korea_soviet_occupation: { en: "The Soviet Occupation Zone marks northern Korea under Soviet occupation and civil administration north of the 38th parallel before the DPRK was proclaimed in 1948.", cn: "苏军占领区表示1948年朝鲜民主主义人民共和国建立前，三八线以北由苏军占领和民政管理的北部朝鲜。" },
@@ -4452,7 +4452,7 @@ const WORLD_HISTORY = {
             { id: "tungning", name: "Tungning / Zheng Taiwan", nameCN: "明郑台湾", start: 1662, end: 1683, slot: 8, width: 1, color: '#B89090', category: 'kingdom', territoryNote: 'Zheng/Koxinga Ming-loyalist island regime on Taiwan, across the Taiwan Strait from the Qing south-coast campaign lane. The block stays whole: Qing pressure is shown through frontier and 1683 conquest links, not by putting Taiwan into the Beijing or mainland core.', territoryNoteCN: '郑氏/明郑在台湾维持的明遗民岛屿政权，与清华南沿海推进栏隔台湾海峡相对。图块保持完整：清军压力通过边疆与1683年征服关系显示，而不是把台湾放入北京或大陆核心。' },
             { id: "qing_taiwan", name: "Qing Taiwan", nameCN: "清治台湾", start: 1683, end: 1895, slot: 8, width: 1, color: '#D4C896', category: 'empire', territoryNote: 'Taiwan under Qing rule after the fall of Tungning; it became a province late in the Qing period before cession to Japan. It is a complete island lane, not a cutout owned by Nguyen Vietnam.', territoryNoteCN: '明郑灭亡后的清治台湾；晚清升为行省，后在1895年割让日本。它是完整岛屿栏，不是由阮氏越南承接的缺口。' },
             { id: "japanese_taiwan", name: "Japanese Taiwan", nameCN: "日治台湾", start: 1895, end: 1945, slot: 8, width: 1, color: '#B89090', category: 'colonial', territoryNote: 'Japanese colonial Taiwan after the Treaty of Shimonoseki, kept separate from Japan proper, Korea, and French Vietnam. The island remains whole because no adjacent Southeast Asian owner receives part of it.', territoryNoteCN: '《马关条约》后的日本殖民台湾，与日本本土、朝鲜和法属越南分开表示。台湾岛保持完整，因为没有相邻东南亚主人承接其一部分。' },
-            { id: "roc_taiwan", name: "ROC Taiwan", nameCN: "中华民国台湾", start: 1945, end: 2000, slot: 8, width: 1, color: '#7B8EB9', category: 'republic', territoryNote: 'Taiwan under ROC control after Japan surrendered; after 1949 the Nationalist government continued there while the PRC held the mainland. The full block expresses a separate island-government lane rather than a clipped neighbor relationship.', territoryNoteCN: '日本投降后由中华民国接管的台湾；1949年后国民政府在此延续，而大陆由中华人民共和国控制。完整图块表达独立的岛屿政权栏，而不是被切开的邻接关系。' }
+            { id: "roc_taiwan", name: "ROC Taiwan", nameCN: "中国台湾", start: 1945, end: 2000, slot: 8, width: 1, color: '#7B8EB9', category: 'republic', territoryNote: 'Taiwan under ROC control after Japan surrendered; after 1949 the Nationalist government continued there while the PRC held the mainland. The full block expresses a separate island-government lane rather than a clipped neighbor relationship.', territoryNoteCN: '日本投降后由中华民国接管的台湾；1949年后国民政府在此延续，而大陆由中华人民共和国控制。完整图块表达独立的岛屿政权栏，而不是被切开的邻接关系。' }
         ],
         events: [
             { year: -221, event: "Qin Unification", eventCN: "秦统一" },
@@ -11773,13 +11773,9 @@ function setupYearCursor() {
     const cursorYear = elements.yearCursor.querySelector('.cursor-year');
 
     container.addEventListener('mousemove', (e) => {
-        const rect = container.getBoundingClientRect();
-        const relativeY = e.clientY - rect.top - 35;
+        const year = Math.round(yearAtViewportY(e.clientY));
 
-        // Calculate year from Y position
-        const year = Math.round(CONFIG.timelineStart + relativeY / CONFIG.yearHeight);
-
-        if (year >= CONFIG.timelineStart && year <= CONFIG.timelineEnd) {
+        if (Number.isFinite(year) && year >= CONFIG.timelineStart && year <= CONFIG.timelineEnd) {
             elements.yearCursor.style.top = `${e.clientY}px`;
             elements.yearCursor.classList.add('visible');
             if (cursorYear) {

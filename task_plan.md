@@ -3,6 +3,13 @@
 ## Goal
 Continuously reflect on and optimize the static world history timeline until it is polished, robust, historically richer, and visually coherent.
 
+## Current Request — 2026-06-13 v315
+- [x] Rename the Chinese visible label for `roc_taiwan` to `中国台湾`.
+- [x] Remove the large blank band above the 3000 BC timeline start while preserving bottom edge padding for late-year alignment.
+- [x] Fix the year cursor / hover year calculation over the timeline top padding.
+- [x] Verify static checks and representative runtime behavior.
+- [x] Commit and push the v315 fix.
+
 ## Current Request — 2026-06-13 commit and push
 - [x] Inspect current branch, remote, dirty worktree, and prior pushed commit.
 - [x] Verify static source health before committing.

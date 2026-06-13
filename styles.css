@@ -69,7 +69,8 @@
     --font-mono: 'SF Mono', Menlo, Consolas, monospace;
 
     /* Edge padding lets first/last timeline years reach the visual focus line. */
-    --timeline-edge-pad: calc((100vh - 16px) / 2);
+    --timeline-edge-pad-top: 28px;
+    --timeline-edge-pad-bottom: calc((100vh - 16px) / 2);
 }
 
 /* ============================================================
@@ -491,7 +492,7 @@ body.lang-cn .main-title::after {
    ============================================================ */
 .timeline-container {
     position: relative;
-    padding: var(--timeline-edge-pad) 1.5rem var(--timeline-edge-pad) 1.5rem;
+    padding: var(--timeline-edge-pad-top) 1.5rem var(--timeline-edge-pad-bottom) 1.5rem;
     max-width: 100%;
     overflow: visible;
 }
@@ -514,7 +515,7 @@ body.lang-cn .main-title::after {
 .year-scale {
     position: absolute;
     left: 0;
-    top: var(--timeline-edge-pad);
+    top: var(--timeline-edge-pad-top);
     width: 64px;
     background: transparent;
     border-right: 1px solid var(--rule);
@@ -2094,7 +2095,8 @@ body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom
 }
 @media (max-width: 600px) {
     :root {
-        --timeline-edge-pad: 28px;
+        --timeline-edge-pad-top: 28px;
+        --timeline-edge-pad-bottom: 28px;
     }
     .chronicle-header { position: static; }
     .main-title { font-size: 0.9rem; }
