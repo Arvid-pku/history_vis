@@ -68,9 +68,9 @@
     --font-chinese: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
     --font-mono: 'SF Mono', Menlo, Consolas, monospace;
 
-    /* Edge padding lets first/last timeline years reach the visual focus line. */
+    /* Small edge padding keeps boundary years close to the viewport edges. */
     --timeline-edge-pad-top: 28px;
-    --timeline-edge-pad-bottom: calc((100vh - 16px) / 2);
+    --timeline-edge-pad-bottom: 28px;
 }
 
 /* ============================================================
