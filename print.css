@@ -8,24 +8,19 @@
 /* Hide non-essential UI elements */
 .search-container,
 .language-toggle,
-.display-toggles,
-.zoom-controls,
-.minimap-container,
-.keyboard-shortcuts,
-.events-toggle,
 .legend,
 .tooltip,
 .event-panel,
 .panel-backdrop,
 .corner-ornament,
 .header-toolbar,
+.mobile-toolbar-toggle,
 .stats-chip,
 .exit-full-page,
 .toast,
 .year-cursor,
 .compare-panel,
-.global-events-track,
-.event-medallion {
+.global-events-track {
     display: none !important;
 }
 
@@ -130,11 +125,6 @@
 .era-label {
     color: #666 !important;
     font-size: 7pt !important;
-}
-
-/* Events overlay */
-.events-overlay {
-    display: none !important;
 }
 
 /* Connections */

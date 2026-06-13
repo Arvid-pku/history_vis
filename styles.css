@@ -51,6 +51,7 @@
     --c-republic:      #6E833A;
     --c-caliphate:     #586B47;
     --c-dynasty:       #8C7350;
+    --c-culture:       #7A7652;
     --c-nomadic:       #735770;
     --c-colonial:      #B8361F;
     --c-confederation: #6F6A60;
@@ -61,11 +62,14 @@
     --r-lg: 4px;
 
     /* Typography */
-    --font-display: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
-    --font-serif: 'Source Serif Pro', 'Iowan Old Style', Georgia, serif;
-    --font-sans: 'Inter', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
-    --font-chinese: 'Source Han Serif SC', 'Songti SC', 'STSong', serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-serif: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-chinese: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+    --font-mono: 'SF Mono', Menlo, Consolas, monospace;
+
+    /* Edge padding lets first/last timeline years reach the visual focus line. */
+    --timeline-edge-pad: calc((100vh - 16px) / 2);
 }
 
 /* ============================================================
@@ -73,6 +77,18 @@
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 
 body {
     font-family: var(--font-sans);
@@ -113,7 +129,7 @@ body {
     font-size: 1.05rem;
     font-weight: 600;
     color: var(--ink-1);
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     margin: 0;
     line-height: 1.1;
     -webkit-text-fill-color: initial;
@@ -145,6 +161,10 @@ body.lang-cn .main-title::after {
     align-items: center;
     gap: 0.5rem;
     margin-left: auto;
+}
+
+.mobile-toolbar-toggle {
+    display: none;
 }
 
 /* Search */
@@ -190,6 +210,7 @@ body.lang-cn .main-title::after {
     padding: 0 0.25rem;
     line-height: 1;
 }
+.search-clear[hidden] { display: none; }
 
 /* Language switcher — tab style */
 .language-toggle {
@@ -230,6 +251,13 @@ body.lang-cn .main-title::after {
     border-top: 1px solid var(--rule-fine);
     flex-wrap: wrap;
     font-size: 0.78rem;
+}
+.toolbar-rows {
+    display: block;
+}
+.category-toolbar {
+    padding-top: 0.25rem;
+    padding-bottom: 0.4rem;
 }
 .toolbar-group {
     display: flex;
@@ -435,6 +463,7 @@ body.lang-cn .main-title::after {
     cursor: pointer;
     transition: all 0.12s ease;
     font-weight: 500;
+    line-height: 1.2;
 }
 .cat-chip:hover { color: var(--ink-1); }
 .cat-chip.active {
@@ -443,13 +472,26 @@ body.lang-cn .main-title::after {
     background: var(--paper-2);
 }
 .cat-chip .dot { width: 8px; height: 8px; border-radius: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2); }
+.cat-dot-all {
+    background: linear-gradient(45deg, #7C5F13, #D7B84C);
+    border: 1px solid rgba(0,0,0,0.2);
+}
+.cat-dot-empire { background: var(--c-empire); }
+.cat-dot-kingdom { background: var(--c-kingdom); }
+.cat-dot-republic { background: var(--c-republic); }
+.cat-dot-caliphate { background: var(--c-caliphate); }
+.cat-dot-dynasty { background: var(--c-dynasty); }
+.cat-dot-culture { background: var(--c-culture); }
+.cat-dot-nomadic { background: var(--c-nomadic); }
+.cat-dot-colonial { background: var(--c-colonial); }
+.cat-dot-confederation { background: var(--c-confederation); }
 
 /* ============================================================
    TIMELINE CONTAINER
    ============================================================ */
 .timeline-container {
     position: relative;
-    padding: 0 1.5rem 0.5rem 1.5rem;
+    padding: var(--timeline-edge-pad) 1.5rem var(--timeline-edge-pad) 1.5rem;
     max-width: 100%;
     overflow: visible;
 }
@@ -472,13 +514,16 @@ body.lang-cn .main-title::after {
 .year-scale {
     position: absolute;
     left: 0;
-    top: 0;
+    top: var(--timeline-edge-pad);
     width: 64px;
     background: transparent;
     border-right: 1px solid var(--rule);
     z-index: 5;
     pointer-events: none;
 }
+body.lang-cn .year-scale { width: 96px; }
+body.lang-cn .timeline-wrapper { margin-left: 104px; }
+body.lang-cn .year-cursor { left: 104px; }
 
 .year-mark {
     position: absolute;
@@ -520,6 +565,55 @@ body.lang-cn .main-title::after {
 }
 .year-mark.millennium::before { display: none; }
 
+.time-ruler {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 28px;
+    transform: translateY(-14px);
+    z-index: 260;
+    cursor: ns-resize;
+    pointer-events: auto;
+    touch-action: none;
+}
+.time-ruler[hidden] { display: none; }
+.time-ruler-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 13px;
+    height: 2px;
+    background: color-mix(in srgb, var(--accent) 82%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--paper-0) 72%, transparent);
+}
+.time-ruler-handle {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    min-width: 78px;
+    padding: 3px 8px;
+    transform: translateY(-50%);
+    background: var(--ink-1);
+    color: var(--paper-0);
+    border: 1px solid var(--ink-1);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    pointer-events: none;
+}
+.time-ruler:focus-visible .time-ruler-handle,
+.time-ruler.dragging .time-ruler-handle {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+}
+body.lang-cn .time-ruler-handle {
+    left: 10px;
+    min-width: 96px;
+}
+
 /* ============================================================
    TIMELINE GRID
    ============================================================ */
@@ -550,6 +644,24 @@ body.lang-cn .main-title::after {
     background: var(--rule-fine);
     pointer-events: none;
     opacity: 1;
+}
+
+.layout-gap {
+    z-index: 12;
+    background-color: rgba(98, 128, 146, 0.08);
+    background:
+        linear-gradient(90deg, rgba(98, 128, 146, 0.08), rgba(98, 128, 146, 0.22), rgba(98, 128, 146, 0.08));
+    box-shadow:
+        inset 1px 0 0 rgba(42, 37, 32, 0.09),
+        inset -1px 0 0 rgba(42, 37, 32, 0.09);
+}
+.region-boundary-gap {
+    z-index: 11;
+    background:
+        linear-gradient(90deg, rgba(98, 128, 146, 0.1), rgba(98, 128, 146, 0.24), rgba(98, 128, 146, 0.1));
+    box-shadow:
+        inset 1px 0 0 rgba(42, 37, 32, 0.12),
+        inset -1px 0 0 rgba(42, 37, 32, 0.12);
 }
 
 /* Region separator — single hairline */
@@ -614,6 +726,7 @@ body.lang-cn .main-title::after {
     box-shadow: none;
     transition: filter 0.12s ease;
     will-change: transform;
+    z-index: 100;
 }
 
 /* Border simulated via outline so widths/heights are pixel-exact */
@@ -623,11 +736,118 @@ body.lang-cn .main-title::after {
     inset: 0;
     border-top: 1px solid rgba(0,0,0,0.18);
     border-right: 1px solid rgba(0,0,0,0.18);
+    border-bottom: 1px solid transparent;
+    border-left: 1px solid transparent;
     pointer-events: none;
     z-index: 1;
 }
 
+.dynasty-block.same-color-seam-left::before { border-left-color: transparent; }
+.dynasty-block.same-color-seam-right::before { border-right-color: transparent; }
+.dynasty-block.same-color-seam-top::before { border-top-color: transparent; }
+.dynasty-block.same-color-seam-bottom::before { border-bottom-color: transparent; }
+.dynasty-block.same-color-seam-left { box-shadow: none; }
+
+.dynasty-block.same-color-seam-left,
+.territory-fill-piece.same-color-seam-left { border-left-color: transparent; }
+.dynasty-block.same-color-seam-right,
+.territory-fill-piece.same-color-seam-right { border-right-color: transparent; }
+.dynasty-block.same-color-seam-top,
+.territory-fill-piece.same-color-seam-top { border-top-color: transparent; }
+.dynasty-block.same-color-seam-bottom,
+.territory-fill-piece.same-color-seam-bottom { border-bottom-color: transparent; }
+
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-left:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-right:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-top:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-left:focus-visible::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-right:focus-visible::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-top:focus-visible::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:focus-visible::before {
+    border-color: rgba(0,0,0,0.28);
+}
+
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-left:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-left:focus-visible::before { border-left-color: rgba(0,0,0,0.28); }
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-right:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-right:focus-visible::before { border-right-color: rgba(0,0,0,0.28); }
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-top:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-top:focus-visible::before { border-top-color: rgba(0,0,0,0.28); }
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:focus-visible::before { border-bottom-color: rgba(0,0,0,0.28); }
+
 .dynasty-block::after { display: none; }
+
+/* Territory-state polygons are orthogonal: horizontal/vertical edges only.
+   These Tetris-like silhouettes show expansion, contraction, and unstable
+   transition phases without implying diagonal geographic borders. */
+.dynasty-block.shape-taper-right {
+    clip-path: polygon(0 0, 100% 0, 100% 48%, 84% 48%, 84% 100%, 0 100%);
+}
+
+.dynasty-block.shape-taper-left {
+    clip-path: polygon(16% 0, 100% 0, 100% 100%, 0 100%, 0 52%, 16% 52%);
+}
+
+.dynasty-block.shape-hourglass {
+    clip-path: polygon(0 0, 100% 0, 100% 36%, 88% 36%, 88% 64%, 100% 64%, 100% 100%, 0 100%, 0 64%, 12% 64%, 12% 36%, 0 36%);
+}
+
+.territory-fill-piece {
+    position: absolute;
+    pointer-events: auto;
+    z-index: 205;
+    cursor: pointer;
+    box-shadow: none;
+    outline: 0;
+    transition: filter 0.12s ease;
+}
+
+.territory-fill-piece::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(42, 37, 32, 0.22);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.territory-fill-piece.same-color-seam-left::before { border-left-color: transparent; }
+.territory-fill-piece.same-color-seam-right::before { border-right-color: transparent; }
+.territory-fill-piece.same-color-seam-top::before { border-top-color: transparent; }
+.territory-fill-piece.same-color-seam-bottom::before { border-bottom-color: transparent; }
+
+.territory-fill-piece.same-color-seam-left,
+.territory-fill-piece.same-color-seam-right,
+.territory-fill-piece.same-color-seam-top,
+.territory-fill-piece.same-color-seam-bottom {
+    box-shadow: none;
+}
+
+.territory-fill-piece:hover,
+.territory-fill-piece:focus-visible {
+    z-index: 260;
+    filter: brightness(0.9) saturate(1.15);
+}
+
+.territory-fill-piece:hover::before,
+.territory-fill-piece:focus-visible::before {
+    border-color: var(--ink-1);
+}
+
+.dynasty-block.territory-source-highlight::before {
+    border: 1px dashed var(--ink-1);
+}
+
+.dynasty-block.territory-owner-highlight::before {
+    border: 1.5px solid var(--accent-2);
+}
+
+.search-active .territory-fill-piece {
+    opacity: 0.3;
+    filter: grayscale(0.55);
+}
 
 /* Category — left-edge accent bar (flat color, 2px) */
 .dynasty-block.category-empire { box-shadow: inset 2px 0 0 var(--c-empire); }
@@ -635,9 +855,14 @@ body.lang-cn .main-title::after {
 .dynasty-block.category-republic { box-shadow: inset 2px 0 0 var(--c-republic); }
 .dynasty-block.category-caliphate { box-shadow: inset 2px 0 0 var(--c-caliphate); }
 .dynasty-block.category-dynasty { box-shadow: inset 2px 0 0 var(--c-dynasty); }
+.dynasty-block.category-culture { box-shadow: inset 2px 0 0 var(--c-culture); }
 .dynasty-block.category-nomadic { box-shadow: inset 2px 0 0 var(--c-nomadic); }
 .dynasty-block.category-colonial { box-shadow: inset 2px 0 0 var(--c-colonial); }
 .dynasty-block.category-confederation { box-shadow: inset 2px 0 0 var(--c-confederation); }
+
+/* Category accents live on the left edge; keep them from reintroducing a
+   visible divider when adjacent rendered blocks share the same color. */
+.dynasty-block.same-color-seam-left { box-shadow: none; }
 
 /* Hover — invert to dark, no scale, no glow */
 .dynasty-block:hover {
@@ -650,6 +875,15 @@ body.lang-cn .main-title::after {
     border-left: 1px solid var(--ink-1);
     border-bottom: 1px solid var(--ink-1);
 }
+
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-left:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-left:focus-visible::before { border-left-color: var(--ink-1); }
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-right:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-right:focus-visible::before { border-right-color: var(--ink-1); }
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-top:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-top:focus-visible::before { border-top-color: var(--ink-1); }
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:hover::before,
+:is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:focus-visible::before { border-bottom-color: var(--ink-1); }
 
 /* Search highlight — outline only, no glow */
 .dynasty-block.search-match::before {
@@ -681,21 +915,17 @@ body.lang-cn .main-title::after {
     height: 100%;
     display: flex;
     flex-direction: column;
-    color: var(--ink-1);
+    color: inherit;
     text-shadow: none;
     overflow: hidden;
-}
-.dynasty-block[data-category="empire"] .dynasty-content,
-.dynasty-block[data-category="caliphate"] .dynasty-content {
-    /* keep text dark — flat backgrounds are pale */
 }
 .dynasty-name {
     font-family: var(--font-sans);
     font-weight: 600;
     font-size: 11.5px;
     line-height: 1.18;
-    letter-spacing: -0.005em;
-    color: var(--ink-1);
+    letter-spacing: 0;
+    color: inherit;
     overflow-wrap: normal;
     word-break: normal;
     display: -webkit-box;
@@ -711,25 +941,45 @@ body.lang-cn .dynasty-name { font-family: var(--font-chinese); font-weight: 500;
     font-family: var(--font-mono);
     font-size: 9.5px;
     letter-spacing: 0;
-    color: var(--ink-3);
+    color: inherit;
     margin-top: auto;
     padding-top: 3px;
     font-variant-numeric: tabular-nums;
-    opacity: 0.85;
+    opacity: 0.96;
 }
 .dynasty-rulers {
     font-family: var(--font-serif);
     font-size: 9.5px;
     font-style: italic;
-    color: var(--ink-3);
+    color: inherit;
     margin-top: 1px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.85;
+    opacity: 0.96;
 }
 
 /* Zoom-dependent sizing */
+.dynasty-block.block-micro .dynasty-content { padding: 0; }
+.dynasty-block.block-micro .dynasty-name { display: none; }
+.dynasty-block.block-micro .dynasty-years,
+.dynasty-block.block-micro .dynasty-rulers { display: none; }
+.dynasty-block.block-micro::after {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    top: 50%;
+    height: 2px;
+    background: rgba(42, 37, 32, 0.48);
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.32);
+    transform: translateY(-50%);
+    z-index: 2;
+    pointer-events: none;
+}
+
 .dynasty-block.block-tiny .dynasty-content { padding: 1px 4px; }
 .dynasty-block.block-tiny .dynasty-name { font-size: 8px; -webkit-line-clamp: 1; line-clamp: 1; font-weight: 500; }
 .dynasty-block.block-tiny .dynasty-years,
@@ -739,16 +989,93 @@ body.lang-cn .dynasty-name { font-family: var(--font-chinese); font-weight: 500;
 .dynasty-block.block-small .dynasty-name { font-size: 10px; -webkit-line-clamp: 2; line-clamp: 2; }
 .dynasty-block.block-small .dynasty-rulers { display: none; }
 
-.dynasty-block.block-narrow .dynasty-content { padding: 4px; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); justify-content: flex-end; }
+.dynasty-block.block-narrow .dynasty-content { padding: 4px; writing-mode: vertical-rl; text-orientation: mixed; transform: none; justify-content: flex-start; }
 .dynasty-block.block-narrow .dynasty-name { font-size: 10.5px; -webkit-line-clamp: 1; line-clamp: 1; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.02em; }
 .dynasty-block.block-narrow .dynasty-years { font-size: 9px; margin-top: 0; padding-top: 0; }
 .dynasty-block.block-narrow .dynasty-rulers { display: none; }
 body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; }
 
+body.lang-cn .dynasty-block.block-narrow .dynasty-content {
+    transform: none;
+    justify-content: flex-start;
+    text-orientation: upright;
+}
+
+body.lang-cn .dynasty-block.block-narrow .dynasty-name {
+    letter-spacing: 0.06em;
+    text-orientation: upright;
+}
+
+.dynasty-block.block-narrow.has-short-name .dynasty-content {
+    padding: 1px;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    transform: none;
+    align-items: center;
+    justify-content: center;
+}
+.dynasty-block.block-narrow.has-short-name .dynasty-name {
+    max-width: 100%;
+    font-size: 8px;
+    line-height: 1;
+    letter-spacing: 0;
+    text-align: center;
+}
+body.lang-cn .dynasty-block.block-narrow.has-short-name .dynasty-name { letter-spacing: 0; }
+
+.dynasty-block.has-short-name .dynasty-content {
+    padding: 1px;
+    align-items: center;
+    justify-content: center;
+}
+.dynasty-block.has-short-name .dynasty-name {
+    display: block;
+    max-width: 100%;
+    font-size: 8px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    letter-spacing: 0;
+    text-align: center;
+}
+.dynasty-block.block-micro.has-short-name .dynasty-name { display: none; }
+body.lang-cn .dynasty-block.has-short-name .dynasty-name { letter-spacing: 0; }
+.dynasty-block.label-overflow-hidden .dynasty-name { display: none !important; }
+.dynasty-block.mini-suppressed-label .dynasty-content {
+    padding: 1px;
+    align-items: center;
+    justify-content: center;
+}
+.dynasty-block.mini-suppressed-label .dynasty-name {
+    display: block;
+    max-width: 100%;
+    font-size: 7px;
+    line-height: 0.96;
+    letter-spacing: 0;
+    text-align: center;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: clip;
+}
+body.lang-cn .dynasty-block.mini-suppressed-label .dynasty-content {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+}
+body.lang-cn .dynasty-block.mini-suppressed-label .dynasty-name {
+    letter-spacing: 0;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+}
+.dynasty-block.ultra-mini-label .dynasty-name {
+    font-size: 5.5px;
+    line-height: 0.9;
+}
+
 .dynasty-block.block-large .dynasty-name { font-size: 13px; -webkit-line-clamp: 4; line-clamp: 4; }
 
 .dynasty-block.block-huge .dynasty-content { padding: 8px 10px; }
-.dynasty-block.block-huge .dynasty-name { font-size: 16px; letter-spacing: -0.01em; -webkit-line-clamp: 6; line-clamp: 6; }
+.dynasty-block.block-huge .dynasty-name { font-size: 16px; letter-spacing: 0; -webkit-line-clamp: 6; line-clamp: 6; }
 .dynasty-block.block-huge .dynasty-years { font-size: 11px; }
 .dynasty-block.block-huge .dynasty-rulers { font-size: 10.5px; white-space: normal; }
 
@@ -763,50 +1090,10 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     opacity: 0.7;
 }
 
-/* Numbered event medallions — flat circles, no gradient */
-.event-medallion {
-    position: absolute;
-    left: 4px;
-    width: 16px; height: 16px;
-    transform: translateY(-50%);
-    display: inline-flex;
-    align-items: center; justify-content: center;
-    border-radius: 50%;
-    background: var(--paper-0);
-    color: var(--ink-1);
-    font-family: var(--font-sans);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0;
-    border: 1px solid var(--ink-1);
-    cursor: pointer;
-    z-index: 40;
-    transition: transform 0.15s ease;
-    text-shadow: none;
-    box-shadow: none;
-}
-.event-medallion:hover {
-    transform: translateY(-50%) scale(1.4);
-    z-index: 41;
-    background: var(--ink-1);
-    color: var(--paper-0);
-}
-
-/* Type-color is just border color, flat fill */
-.event-medallion.type-conflict   { border-color: var(--accent); color: var(--accent); }
-.event-medallion.type-cultural   { border-color: var(--accent-2); color: var(--accent-2); }
-.event-medallion.type-invention  { border-color: var(--accent-3); color: var(--accent-3); }
-.event-medallion.type-exploration{ border-color: #8C7350; color: #8C7350; }
-.event-medallion.type-disaster   { border-color: #5A1108; color: #5A1108; }
-.event-medallion.type-conquest   { border-color: var(--accent); color: var(--accent); }
-.event-medallion.type-trade      { border-color: var(--accent-3); color: var(--accent-3); }
-.event-medallion.type-construction{ border-color: var(--ink-3); color: var(--ink-3); }
-.event-medallion.type-political  { border-color: var(--ink-1); color: var(--ink-1); }
-
 /* ============================================================
    CONNECTIONS (SVG lines)
    ============================================================ */
-.connection-line { transition: opacity 0.15s ease; }
+.connection-line { transition: opacity 0.15s ease; z-index: 140; }
 .connection-line path:hover { stroke-width: 2.5; }
 
 /* ============================================================
@@ -891,10 +1178,11 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     display: flex;
     flex-direction: column;
 }
-.event-panel.visible {
-    opacity: 1;
-    visibility: visible;
-    transform: translate(-50%, -50%) scale(1);
+.event-panel.visible,
+.event-panel[data-open="true"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translate(-50%, -50%) scale(1) !important;
 }
 .event-panel::before { display: none; }
 
@@ -912,7 +1200,7 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--ink-1);
-    letter-spacing: -0.015em;
+    letter-spacing: 0;
     line-height: 1.15;
     margin: 0;
 }
@@ -960,6 +1248,10 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
 }
 .panel-content a { color: var(--accent-2); text-decoration: underline; text-underline-offset: 2px; }
 .panel-content a:hover { color: var(--ink-1); }
+.panel-content .inline-wiki-link {
+    text-decoration-style: dotted;
+    font-weight: 600;
+}
 
 /* Hero strip — flat, monochrome */
 .panel-hero {
@@ -1064,7 +1356,20 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
 .connection-type.conflict { background: var(--accent); }
 .connection-type.conquest { background: #5A1108; }
 .connection-type.succession { background: var(--accent-2); }
+.connection-type.political { background: #6B4FA0; }
+.connection-type.colonial { background: #8F3F2C; }
 .connection-type.cultural { background: var(--ink-3); }
+.connection-type.frontier { background: #4D6A70; }
+
+.territory-owner-list a {
+    font-weight: 600;
+}
+
+.territory-owner-period {
+    color: var(--ink-4);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
 
 .wiki-section {
     margin-top: 1.25rem;
@@ -1099,9 +1404,10 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     z-index: 1999;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: all 0.18s ease;
 }
-.panel-backdrop.visible { opacity: 1; visibility: visible; }
+.panel-backdrop.visible { opacity: 1; visibility: visible; pointer-events: auto; }
 
 /* ============================================================
    COMPARE PANEL
@@ -1122,6 +1428,16 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     min-width: 240px;
 }
 .compare-panel.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+.compare-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 12, 10, 0.12);
+    z-index: 550;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.18s ease;
+}
+.compare-backdrop.visible { opacity: 1; visibility: visible; }
 .compare-header {
     display: flex;
     justify-content: space-between;
@@ -1203,10 +1519,16 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: all 0.2s ease;
+    transition: max-height 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     font-size: 0.78rem;
 }
-.legend.collapsed { max-height: 30px; overflow: hidden; }
+.legend.collapsed {
+    width: 34px;
+    max-width: 34px;
+    height: 34px;
+    max-height: 34px;
+    overflow: hidden;
+}
 .legend-toggle {
     display: flex;
     align-items: center;
@@ -1226,8 +1548,17 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     text-shadow: none;
     border-radius: 0;
 }
-.legend.collapsed .legend-toggle { border-radius: 0; }
+.legend.collapsed .legend-toggle {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 0;
+    font-size: 0;
+    letter-spacing: 0;
+}
 .legend-toggle::before { content: '◧'; font-size: 0.78rem; }
+.legend.collapsed .legend-toggle::before { font-size: 0.9rem; }
 .legend-content {
     padding: 0.55rem 0.75rem;
     overflow-y: auto;
@@ -1346,20 +1677,31 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
    GLOBAL EVENTS RAIL — flat numbered circles
    ============================================================ */
 .global-events-track {
-    position: absolute;
-    right: -2px;
-    top: 35px;
-    bottom: 0;
-    width: 24px;
-    pointer-events: none;
+    position: fixed;
+    right: 0.75rem;
+    top: 0;
+    bottom: auto;
+    height: 100vh;
+    width: var(--event-rail-width, 24px);
+    pointer-events: auto;
+    z-index: 220;
+    overflow: visible;
+    transition: width 0.22s ease, opacity 0.16s ease;
+}
+.global-events-track.timeline-offscreen { visibility: hidden; }
+.global-events-track:hover,
+.global-events-track:focus-within,
+.global-events-track.event-rail-expanded {
+    width: var(--event-rail-expanded-width, 96px);
 }
 .global-event-marker {
+    --event-color: var(--ink-1);
     position: absolute;
-    right: 0;
+    right: var(--event-collapsed-right, 0);
     width: 18px; height: 18px;
     border-radius: 50%;
     background: var(--paper-0);
-    border: 1px solid var(--ink-1);
+    border: 1px solid var(--event-color);
     box-shadow: none;
     transform: translateY(-50%);
     display: flex;
@@ -1367,30 +1709,136 @@ body.lang-cn .dynasty-block.block-narrow .dynasty-name { letter-spacing: 0.1em; 
     font-family: var(--font-sans);
     font-size: 9px;
     font-weight: 600;
-    color: var(--ink-1);
+    color: var(--event-color);
     cursor: pointer;
     pointer-events: auto;
-    transition: transform 0.15s ease;
+    transition: right 0.22s ease, width 0.18s ease, height 0.18s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
     z-index: 45;
     text-shadow: none;
+    padding: 0;
 }
-.global-event-marker:hover {
-    transform: translateY(-50%) scale(1.35);
+.global-events-track:hover .global-event-marker,
+.global-events-track:focus-within .global-event-marker,
+.global-events-track.event-rail-expanded .global-event-marker {
+    right: var(--event-expanded-right, 0);
+}
+.global-event-marker::before {
+    content: attr(data-event-label);
+    position: absolute;
+    right: calc(100% + 8px);
+    top: 50%;
+    max-width: min(260px, calc(100vw - 96px));
+    padding: 4px 8px;
+    transform: translateY(-50%) translateX(6px);
     background: var(--ink-1);
     color: var(--paper-0);
+    border: 1px solid var(--ink-1);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.16);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.global-event-marker:hover,
+.global-event-marker:focus-visible {
+    transform: translateY(-50%);
+    background: var(--event-color);
+    color: var(--paper-0);
+    border-color: var(--event-color);
+    opacity: 1;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--event-color) 24%, transparent);
     z-index: 46;
 }
-/* Type-color border only */
-.global-event-marker.conflict   { border-color: var(--accent); color: var(--accent); }
-.global-event-marker.cultural   { border-color: var(--accent-2); color: var(--accent-2); }
-.global-event-marker.invention  { border-color: var(--accent-3); color: var(--accent-3); }
-.global-event-marker.exploration{ border-color: #8C7350; color: #8C7350; }
-.global-event-marker.disaster   { border-color: #5A1108; color: #5A1108; }
-.global-event-marker.conquest   { border-color: var(--accent); color: var(--accent); }
-.global-event-marker.trade      { border-color: var(--accent-3); color: var(--accent-3); }
-.global-event-marker.construction{ border-color: var(--ink-3); color: var(--ink-3); }
-.global-event-marker.political  { border-color: var(--ink-1); color: var(--ink-1); }
-.global-event-marker:hover { background: var(--ink-1); color: var(--paper-0); border-color: var(--ink-1); }
+.global-event-marker:hover::before,
+.global-event-marker:focus-visible::before {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+/* Type color token */
+.global-event-marker.conflict   { --event-color: var(--accent); }
+.global-event-marker.cultural   { --event-color: var(--accent-2); }
+.global-event-marker.invention  { --event-color: var(--accent-3); }
+.global-event-marker.exploration{ --event-color: #8C7350; }
+.global-event-marker.disaster   { --event-color: #8A2D20; }
+.global-event-marker.conquest   { --event-color: var(--accent); }
+.global-event-marker.trade      { --event-color: var(--accent-3); }
+.global-event-marker.construction{ --event-color: var(--ink-3); }
+.global-event-marker.political  { --event-color: var(--ink-1); }
+.global-events-track.dense-event-rail .global-event-marker {
+    width: 8px;
+    height: 8px;
+    overflow: visible;
+    font-size: 0;
+    line-height: 0;
+    color: transparent;
+    opacity: 0.64;
+    background: color-mix(in srgb, var(--paper-0) 76%, var(--event-color) 24%);
+    border-color: color-mix(in srgb, var(--event-color) 64%, var(--paper-0) 36%);
+}
+.global-events-track.dense-event-rail:hover .global-event-marker,
+.global-events-track.dense-event-rail:focus-within .global-event-marker,
+.global-events-track.dense-event-rail.event-rail-expanded .global-event-marker {
+    width: 18px;
+    height: 18px;
+    opacity: 0.94;
+    background: var(--paper-0);
+    border-color: var(--event-color);
+}
+.global-events-track.dense-event-rail .global-event-marker::after {
+    content: attr(data-event-number);
+    position: absolute;
+    right: 50%;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translate(50%, -50%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--event-color);
+    border: 1px solid var(--event-color);
+    color: var(--paper-0);
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--event-color) 24%, transparent);
+    transition: opacity 0.15s ease;
+}
+.global-events-track.dense-event-rail:hover .global-event-marker::after,
+.global-events-track.dense-event-rail:focus-within .global-event-marker::after,
+.global-events-track.dense-event-rail.event-rail-expanded .global-event-marker::after {
+    opacity: 0.95;
+}
+.global-events-track.dense-event-rail .global-event-marker:hover,
+.global-events-track.dense-event-rail .global-event-marker:focus-visible {
+    opacity: 1;
+    background: var(--event-color);
+    border-color: var(--event-color);
+    color: transparent;
+}
+.global-events-track.dense-event-rail .global-event-marker:hover::after,
+.global-events-track.dense-event-rail .global-event-marker:focus-visible::after {
+    opacity: 1;
+}
+.global-events-track.dense-event-rail-compact .global-event-marker {
+    width: 6px;
+    height: 6px;
+}
+.global-events-track.dense-event-rail-compact:hover .global-event-marker,
+.global-events-track.dense-event-rail-compact:focus-within .global-event-marker,
+.global-events-track.dense-event-rail-compact.event-rail-expanded .global-event-marker {
+    width: 16px;
+    height: 16px;
+}
 
 /* ============================================================
    FOOTER
@@ -1456,8 +1904,6 @@ body.full-page-mode .chronicle-header,
 body.full-page-mode .chronicle-footer,
 body.full-page-mode .legend,
 body.full-page-mode .corner-ornament { display: none !important; }
-body.full-page-mode .timeline-container { padding-top: 0.5rem; }
-
 /* ============================================================
    STATS CHIP
    ============================================================ */
@@ -1504,31 +1950,131 @@ body.full-page-mode .stats-chip { display: none; }
    DARK MODE — high contrast minimalism
    ============================================================ */
 body.dark-mode {
-    --paper-0: #0F0E0C;
-    --paper-1: #16140F;
-    --paper-2: #1E1A14;
-    --paper-3: #28231C;
-    --rule: #DCD4C7;
-    --rule-fine: rgba(220, 212, 199, 0.18);
-    --rule-mid: rgba(220, 212, 199, 0.34);
-    --ink-1: #F8F4EC;
-    --ink-2: #E5DECF;
-    --ink-3: #B0A693;
-    --ink-4: #80776A;
-    --ink-5: #58514A;
-    --accent: #E26A50;
-    --accent-2: #6FA0D9;
-    --accent-3: #B5C97D;
+    --paper-0: #101213;
+    --paper-1: #171819;
+    --paper-2: #202121;
+    --paper-3: #2B2A27;
+    --rule: #D8D1C5;
+    --rule-fine: rgba(216, 209, 197, 0.16);
+    --rule-mid: rgba(216, 209, 197, 0.31);
+    --ink-1: #F2EDE4;
+    --ink-2: #DCD4C7;
+    --ink-3: #B8AD9C;
+    --ink-4: #8F8678;
+    --ink-5: #635D55;
+    --accent: #D96E55;
+    --accent-2: #80A7C8;
+    --accent-3: #A8BC78;
 
     background: var(--paper-1);
 }
 body.dark-mode .chronicle-header { background: var(--paper-0); }
 body.dark-mode .timeline-grid { background: var(--paper-0); }
+body.dark-mode .layout-gap {
+    background-color: rgba(128, 167, 200, 0.065);
+    background:
+        linear-gradient(90deg, rgba(128, 167, 200, 0.045), rgba(128, 167, 200, 0.13), rgba(128, 167, 200, 0.045));
+    box-shadow:
+        inset 1px 0 0 rgba(242,237,228,0.055),
+        inset -1px 0 0 rgba(242,237,228,0.055);
+}
+body.dark-mode .region-boundary-gap {
+    background:
+        linear-gradient(90deg, rgba(128, 167, 200, 0.055), rgba(128, 167, 200, 0.16), rgba(128, 167, 200, 0.055));
+    box-shadow:
+        inset 1px 0 0 rgba(242,237,228,0.07),
+        inset -1px 0 0 rgba(242,237,228,0.07);
+}
 body.dark-mode .panel-hero { background: var(--paper-2); }
-body.dark-mode .dynasty-content { color: var(--paper-0); }
-body.dark-mode .dynasty-name { color: var(--paper-0); }
+body.dark-mode .legend {
+    background: #101213;
+    border-color: rgba(242,237,228,0.38);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.46);
+}
+body.dark-mode .legend-toggle {
+    background: #1E2020;
+    color: var(--ink-1);
+    border-bottom: 1px solid rgba(242,237,228,0.18);
+}
+body.dark-mode .legend.collapsed .legend-toggle { border-bottom-color: transparent; }
+body.dark-mode .legend-content {
+    background: #101213;
+    color: var(--ink-1);
+}
+body.dark-mode .legend-group-title {
+    color: var(--ink-2);
+    border-bottom-color: rgba(216,209,197,0.18);
+}
+body.dark-mode .legend-item,
+body.dark-mode .category-item {
+    color: var(--ink-1);
+}
+body.dark-mode .legend-more {
+    color: var(--ink-3);
+}
+body.dark-mode .category-legend {
+    border-top-color: rgba(216,209,197,0.18);
+}
+body.dark-mode .legend-color {
+    border-color: rgba(242,237,228,0.24);
+}
+body.dark-mode .global-event-marker.exploration { --event-color: #C2A16C; }
+body.dark-mode .global-event-marker.disaster { --event-color: #DF7D66; }
+body.dark-mode .global-events-track.dense-event-rail .global-event-marker {
+    opacity: 0.68;
+    background: color-mix(in srgb, var(--paper-0) 72%, var(--event-color) 28%);
+    border-color: color-mix(in srgb, var(--event-color) 58%, var(--paper-0) 42%);
+}
+body.dark-mode .dynasty-content {
+    color: var(--ink-1);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.38);
+}
+body.dark-mode .dynasty-block,
+body.dark-mode .territory-fill-piece { color: var(--ink-1); }
+body.dark-mode .dynasty-content * { color: inherit; }
+body.dark-mode .dynasty-name { color: #F8F2EA; }
 body.dark-mode .dynasty-years,
-body.dark-mode .dynasty-rulers { color: rgba(15,14,12,0.7); }
+body.dark-mode .dynasty-rulers { color: rgba(242,237,228,0.78); }
+body.dark-mode .dynasty-block::before {
+    border-top-color: rgba(255,255,255,0.16);
+    border-right-color: rgba(255,255,255,0.16);
+}
+body.dark-mode .dynasty-block.block-micro::after {
+    background: rgba(242,237,228,0.58);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.36);
+}
+body.dark-mode .territory-fill-piece::before { border-color: rgba(255,255,255,0.15); }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-left::before { border-left-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-right::before { border-right-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-top::before { border-top-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom::before { border-bottom-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-left { border-left-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-right { border-right-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-top { border-top-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom { border-bottom-color: transparent; }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-left:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-right:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-top:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-left:focus-visible::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-right:focus-visible::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-top:focus-visible::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:focus-visible::before {
+    border-color: rgba(255,255,255,0.32);
+}
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-left:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-left:focus-visible::before { border-left-color: rgba(255,255,255,0.32); }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-right:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-right:focus-visible::before { border-right-color: rgba(255,255,255,0.32); }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-top:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-top:focus-visible::before { border-top-color: rgba(255,255,255,0.32); }
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:hover::before,
+body.dark-mode :is(.dynasty-block, .territory-fill-piece).same-color-seam-bottom:focus-visible::before { border-bottom-color: rgba(255,255,255,0.32); }
+
+:is(button, input, .dynasty-block, .territory-fill-piece, .global-event-marker, .compare-option):focus-visible {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+}
 
 /* ============================================================
    RESPONSIVE
@@ -1547,10 +2093,59 @@ body.dark-mode .dynasty-rulers { color: rgba(15,14,12,0.7); }
     .stats-chip { display: none; }
 }
 @media (max-width: 600px) {
+    :root {
+        --timeline-edge-pad: 28px;
+    }
+    .chronicle-header { position: static; }
     .main-title { font-size: 0.9rem; }
     .main-title::after { display: none; }
     .header-controls { width: 100%; justify-content: space-between; }
     .search-container { flex: 1; }
+    .mobile-toolbar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: calc(100% - 2rem);
+        margin: 0 1rem 0.55rem;
+        padding: 0.45rem 0.65rem;
+        border: 1px solid var(--rule-mid);
+        background: var(--paper-0);
+        color: var(--ink-1);
+        font-family: var(--font-sans);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+    .mobile-toolbar-toggle::after {
+        content: '+';
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        line-height: 1;
+    }
+    body.mobile-controls-open .mobile-toolbar-toggle::after { content: '−'; }
+    .toolbar-rows { display: none; }
+    body.mobile-controls-open .toolbar-rows { display: block; }
+    .header-toolbar {
+        align-items: flex-start;
+        gap: 0.25rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .toolbar-divider { display: none; }
+    .toolbar-group { max-width: 100%; flex-wrap: wrap; }
+    .regions-group,
+    .category-filter {
+        width: 100%;
+        row-gap: 0.2rem;
+    }
+    .timeline-container { padding-left: 1rem; padding-right: 1rem; }
+    .timeline-wrapper { margin-left: 64px; }
+    .year-scale { width: 56px; }
+    body.lang-cn .timeline-wrapper { margin-left: 96px; }
+    body.lang-cn .year-scale { width: 88px; }
+    body.lang-cn .year-cursor { left: 96px; }
     .chronicle-footer { padding: 1.25rem 1rem; }
 }
 
